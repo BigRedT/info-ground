@@ -1,0 +1,5 @@
+{
+    "sync-rsync.local": "/Users/tanmay/Code/vision-sched/context-regions/",
+    "sync-rsync.remote": "tgupta6@vision-sched:/home/tgupta6/Code/context-regions/",
+    "sync-rsync.delete": true,
+}
