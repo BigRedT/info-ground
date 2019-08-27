@@ -1,1 +1,0 @@
-condor_submit htc_scripts/eval_job.sub

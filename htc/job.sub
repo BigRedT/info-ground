@@ -1,4 +1,4 @@
-Executable   = htc_scripts/executable.sh
+Executable   = htc/executable.sh
 Log          = job.log
 Output       = job.stdout
 Error        = job.stderr
