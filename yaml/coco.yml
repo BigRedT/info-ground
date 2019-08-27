@@ -1,0 +1,24 @@
+# Locations where downloaded and extracted files would be stored
+downloads_dir: /shared/rsaas/tgupta6/coco_downloads
+image_dir: /data/tgupta6/coco_images
+proc_dir: /home/tgupta6/Data/coco_proc
+
+# Urls to download data from
+urls:
+  images:
+    train: http://images.cocodataset.org/zips/train2014.zip
+    val: http://images.cocodataset.org/zips/val2014.zip
+    test: http://images.cocodataset.org/zips/test2014.zip
+  annos: 
+    train_val: http://images.cocodataset.org/annotations/annotations_trainval2014.zip
+
+# Names of dirs/files post extraction
+extracted:
+  images:
+    train: train2014
+    val: val2014
+    test: test2014
+  annos:
+    captions:
+      train: annotations/captions_train2014.json
+      val: annotations/captions_val2014.json
