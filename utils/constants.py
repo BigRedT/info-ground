@@ -11,9 +11,8 @@ class Constants(io.JsonSerializableClass):
 class ExpConstants(Constants):
     def __init__(
             self,
-            exp_name='default_exp',
-            out_base_dir=os.path.join(
-                os.getcwd(),'symlinks/gqa_exp')):
+            exp_name,
+            out_base_dir):
         self.exp_name = exp_name
         self.out_base_dir = out_base_dir
         self.exp_dir = os.path.join(self.out_base_dir,self.exp_name)
