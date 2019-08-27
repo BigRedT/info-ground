@@ -1,2 +1,3 @@
+Requirements = Machine=="vision-01.cs.illinois.edu"
 Request_gpus = 1
 Queue

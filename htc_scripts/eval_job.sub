@@ -2,6 +2,6 @@ Executable   = htc_scripts/eval_executable.sh
 Log          = eval_job.log
 Output       = eval_job.stdout
 Error        = eval_job.stderr
-Arguments    = echo $CUDA_VISIBLE_DEVICES; python -c \"print('Hello World!')\";
+Arguments    = sleep 7d;
 Request_gpus = 1
 Queue
