@@ -501,16 +501,12 @@ class RoIHeads(torch.nn.Module):
             scores = scores[:, 1:]
             labels = labels[:, 1:]
             feature_inds = feature_inds[:,1:]
-            print('boxes:',boxes.size())
-            print('scores:',scores.size())
 
             # batch everything, by making every class prediction be a separate instance
             boxes = boxes.reshape(-1, 4)
             scores = scores.flatten()
             labels = labels.flatten()
             feature_inds = feature_inds.flatten()
-            print('boxes:',boxes.size())
-            print('scores:',scores.size())
             
             # remove low scoring boxes
             inds = torch.nonzero(scores > self.score_thresh).squeeze(1)

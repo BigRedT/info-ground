@@ -1,6 +1,7 @@
 import os
 import h5py
 import click
+import torch
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
@@ -42,13 +43,28 @@ def main(**kwargs):
     model = model.cuda()
     model.eval()
 
-    print('Run detector on dataset ...')
-    for data in dataloader:
-        images = [img.cuda() for img in data['img']]
-        detections = model(images)
-        for detection in detections:
-            import pdb; pdb.set_trace()
+    print('Creating hdf5 files for storing detections ...')
+    io.mkdir_if_not_exists(kwargs['out_dir'],recursive=True)
+    h5py_f = {}
+    for name in ['features','scores','boxes','labels']:
+        print('-',os.path.join(kwargs['out_dir'],f'{name}.hdf5'))
+        h5py_f[name] = h5py.File(
+            os.path.join(kwargs['out_dir'],f'{name}.hdf5'),
+            'w')
 
+    print('Run detector on dataset ...')
+    for data in tqdm(dataloader):
+        images = [img.cuda() for img in data['img']]
+        with torch.no_grad():
+            detections = model(images)
+        for img_id,detection in zip(data['img_id'],detections):
+            for name, value in detection.items():
+                h5py_f[name].create_dataset(
+                    img_id,
+                    data=value.cpu().detach().numpy())
+            
+    for f in h5py_f.values():
+        f.close()
 
 if __name__=='__main__':
     main()
