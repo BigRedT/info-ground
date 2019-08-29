@@ -1,7 +1,7 @@
 # Locations where downloaded and extracted files would be stored
-downloads_dir: /shared/rsaas/tgupta6/coco_downloads
+downloads_dir: /shared/rsaas/tgupta6/Data/context-regions/coco_downloads
+proc_dir: /shared/rsaas/tgupta6/Data/context-regions/coco_proc
 image_dir: /data/tgupta6/coco_images
-proc_dir: /home/tgupta6/Data/coco_proc
 
 # Urls to download data from
 urls:

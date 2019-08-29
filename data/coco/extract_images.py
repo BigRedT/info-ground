@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from global_constants import coco_paths
 
 
-subsets = ['test']
+subsets = ['train','val']
 for subset in subsets:
     url = coco_paths['urls']['images'][subset]
     filename = os.path.join(
