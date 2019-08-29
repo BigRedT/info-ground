@@ -1,3 +1,4 @@
-Requirements = Machine=="vision-01.cs.illinois.edu"
+Requirements = Machine=="vision-12.cs.illinois.edu"
 Request_gpus = 1
+Request_cpus = 5
 Queue
