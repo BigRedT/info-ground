@@ -11,6 +11,7 @@ dependencies:
   - ca-certificates=2019.5.15=1
   - certifi=2019.6.16=py37_1
   - cffi=1.12.3=py37h2e261b9_0
+  - click=7.0=py37_0
   - cudatoolkit=10.0.130=0
   - freetype=2.9.1=h8a8886c_1
   - h5py=2.9.0=py37h7918eee_0
@@ -41,6 +42,7 @@ dependencies:
   - protobuf=3.9.1=py37he1b5a44_0
   - pycparser=2.19=py37_0
   - python=3.7.4=h265db76_1
+  - python-wget=3.2=py_0
   - pytorch=1.2.0=py3.7_cuda10.0.130_cudnn7.6.2_0
   - pyyaml=5.1.2=py37h7b6447c_0
   - readline=7.0=h7b6447c_5
@@ -58,4 +60,19 @@ dependencies:
   - yaml=0.1.7=h96e3832_1
   - zlib=1.2.11=h7b6447c_3
   - zstd=1.3.7=h0b5b093_0
+  - pip:
+    - boto3==1.9.219
+    - botocore==1.12.219
+    - chardet==3.0.4
+    - docutils==0.15.2
+    - idna==2.8
+    - jmespath==0.9.4
+    - python-dateutil==2.8.0
+    - pytorch-transformers==1.1.0
+    - regex==2019.8.19
+    - requests==2.22.0
+    - s3transfer==0.2.1
+    - sentencepiece==0.1.83
+    - urllib3==1.25.3
 prefix: /home/tgupta6/miniconda3/envs/context-regions
+
