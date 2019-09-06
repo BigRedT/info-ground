@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from copy import deepcopy
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
@@ -22,7 +23,8 @@ class DetFeatDatasetConstants(Constants):
         self.scores_hdf5 = os.path.join(self.det_dir,'scores.hdf5')
         self.annos_json = os.path.join(
             coco_paths['proc_dir'],
-            coco_paths['extracted']['annos']['captions'][subset]) 
+            coco_paths['extracted']['annos']['captions'][subset])
+        self.max_objects = 15
 
 
 class DetFeatDataset(Dataset):
@@ -44,6 +46,20 @@ class DetFeatDataset(Dataset):
         f.close()
         return features
 
+    def pad_object_features(self,features):
+        T,D = features.shape # num_objects x feat. dim
+        if T==self.const.max_objects:
+            return features
+
+        if T > self.const.max_objects:
+            features = features[:self.const.max_objects]
+        else:
+            features = np.concatenate((
+                features,
+                np.zeros([self.const.max_objects-T,D])),0).astype(np.float32)
+            
+        return features
+
     def __getitem__(self, i):
         anno = self.annos['annotations'][i]
         image_id = anno['image_id']
@@ -51,18 +67,29 @@ class DetFeatDataset(Dataset):
         caption = anno['caption']
         image_name = self.get_image_name(self.const.subset,anno['image_id'])
         features = self.read_object_features(image_name)
+        num_objects = features.shape[0]
+        features = self.pad_object_features(features)
         to_return = {
             'image_id': image_id,
             'cap_id': cap_id,
             'image_name': image_name,
             'caption': caption,
-            'features': features
+            'features': features,
+            'num_objects': num_objects,
         }
         return to_return
+
+    # def create_collate_fn(self):
+    #     def collate_fn(batch):
+    #         batch = [sample for sample in batch if sample is not None]
+    #         batch
+
+
 
 
 if __name__=='__main__':
     const = DetFeatDatasetConstants('val')
     dataset = DetFeatDataset(const)
-    dataset[0]
-    import pdb; pdb.set_trace()
+    dataloader = DataLoader(dataset,3,num_workers=3)
+    for data in dataloader:
+        import pdb; pdb.set_trace()
