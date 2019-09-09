@@ -27,13 +27,14 @@ class InfoNCE(nn.Module):
     def forward(self,x,c,mask=None):
         """
         Input:
-        :x: BxTxD non-contextualized features
-        :c: BxTxD contextualized features
+        :x: BxTxD1 non-contextualized features
+        :c: BxTxD2 contextualized features
         :mask: BxT boolean matrix denoting which time stamps are masked
         """
-        assert(x.size()==c.size()), 'x and c must have same size'
+        assert(x.size()[:2]==c.size()[:2]), 'x and c must have same B and T'
         
-        B,T,D = x.size()
+        B,T,D1 = x.size()
+        B,T,D2 = c.size()
 
         if mask is not None:
             err_str = f'size of mask must be {B}x{T} but got {mask.size()}'
@@ -46,8 +47,8 @@ class InfoNCE(nn.Module):
         else:
             T_ = T
 
-        x = self.fx(x.view(-1,D)).view(B,T_,D)
-        c = self.fc(c.view(-1,D)).view(B,T_,D)
+        x = self.fx(x.view(-1,D1)).view(B,T_,-1)
+        c = self.fc(c.view(-1,D2)).view(B,T_,-1)
 
         x = x.unsqueeze(1) # Bx1xT_xD
         c = c.unsqueeze(0) # 1xBxT_xD
@@ -62,7 +63,7 @@ class InfoNCE(nn.Module):
         
         # loss = loss / T_
 
-        return loss, log_softmax1, log_softmax2
+        return loss
 
 
 if __name__=='__main__':
