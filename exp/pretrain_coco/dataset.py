@@ -15,8 +15,11 @@ class DetFeatDatasetConstants(Constants):
         self.subset = subset
         self.subset_image_dirname = coco_paths['extracted']['images'][subset]
         self.det_dir = os.path.join(
-            coco_paths['proc_dir'],
+            coco_paths['local_proc_dir'],
             f'detections/{subset}')
+        # self.det_dir = os.path.join(
+        #     coco_paths['proc_dir'],
+        #     f'detections/{subset}')
         self.boxes_hdf5 = os.path.join(self.det_dir,'boxes.hdf5')
         self.features_hdf5 = os.path.join(self.det_dir,'features.hdf5')
         self.labels_hdf5 = os.path.join(self.det_dir,'labels.hdf5')
@@ -25,6 +28,7 @@ class DetFeatDatasetConstants(Constants):
             coco_paths['proc_dir'],
             coco_paths['extracted']['annos']['captions'][subset])
         self.max_objects = 15
+        self.mask_prob = 0.2
 
 
 class DetFeatDataset(Dataset):
@@ -48,8 +52,9 @@ class DetFeatDataset(Dataset):
 
     def pad_object_features(self,features):
         T,D = features.shape # num_objects x feat. dim
+        pad_mask = np.zeros(self.const.max_objects).astype(np.bool)
         if T==self.const.max_objects:
-            return features
+            return features, pad_mask
 
         if T > self.const.max_objects:
             features = features[:self.const.max_objects]
@@ -57,8 +62,15 @@ class DetFeatDataset(Dataset):
             features = np.concatenate((
                 features,
                 np.zeros([self.const.max_objects-T,D])),0).astype(np.float32)
+            pad_mask[T:] = True
             
-        return features
+        return features, pad_mask
+
+    def mask_objects(self,num_objects):
+        mask = np.random.uniform(size=(self.const.max_objects))
+        mask[num_objects:] = 1.0
+        mask = mask < self.const.mask_prob
+        return mask
 
     def __getitem__(self, i):
         anno = self.annos['annotations'][i]
@@ -68,7 +80,8 @@ class DetFeatDataset(Dataset):
         image_name = self.get_image_name(self.const.subset,anno['image_id'])
         features = self.read_object_features(image_name)
         num_objects = features.shape[0]
-        features = self.pad_object_features(features)
+        features, pad_mask = self.pad_object_features(features)
+        object_mask = self.mask_objects(num_objects)
         to_return = {
             'image_id': image_id,
             'cap_id': cap_id,
@@ -76,20 +89,16 @@ class DetFeatDataset(Dataset):
             'caption': caption,
             'features': features,
             'num_objects': num_objects,
+            'object_mask': object_mask,
+            'pad_mask': pad_mask,
         }
         return to_return
 
-    # def create_collate_fn(self):
-    #     def collate_fn(batch):
-    #         batch = [sample for sample in batch if sample is not None]
-    #         batch
-
-
-
 
 if __name__=='__main__':
-    const = DetFeatDatasetConstants('val')
+    const = DetFeatDatasetConstants('train')
     dataset = DetFeatDataset(const)
+    print(len(dataset))
     dataloader = DataLoader(dataset,3,num_workers=3)
     for data in dataloader:
         import pdb; pdb.set_trace()
