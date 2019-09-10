@@ -27,6 +27,11 @@ from ..train import main as train
     default=1e-5,
     type=float,
     help='Learning rate')
+@click.option(
+    '--train_batch_size',
+    default=200,
+    type=int,
+    help='Training batch size')
 def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.log_dir = os.path.join(exp_const.exp_dir,'logs')
@@ -35,13 +40,15 @@ def main(**kwargs):
     exp_const.optimizer = 'Adam'
     exp_const.lr = kwargs['lr']
     exp_const.momentum = None
-    exp_const.num_epochs = 100
-    exp_const.log_step = 100
+    exp_const.num_epochs = 10
+    exp_const.log_step = 20
     exp_const.model_save_step = 2000 # 400000/200
-    exp_const.val_step = 1000
+    exp_const.val_step = 250
     exp_const.num_val_samples = None
-    exp_const.batch_size = 200
+    exp_const.train_batch_size = kwargs['train_batch_size']
+    exp_const.val_batch_size = 20
     exp_const.num_workers = 10
+    exp_const.seed = 0
 
     data_const = {
         'train': DetFeatDatasetConstants('train'),
@@ -54,6 +61,9 @@ def main(**kwargs):
     model_const.object_encoder_path = os.path.join(
         exp_const.model_dir,
         f'object_encoder_{model_const.model_num}')
+    model_const.self_sup_criterion_path = os.path.join(
+        exp_const.model_dir,
+        f'self_supervised_criterion_{model_const.model_num}')
 
     train(exp_const,data_const,model_const)
 
