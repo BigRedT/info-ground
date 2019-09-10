@@ -3,8 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+import utils.io as io
 
-class Identity(nn.Module):
+
+class Identity(nn.Module,io.WritableToFile):
     def __init__(self):
         super().__init__()
 
@@ -12,7 +14,7 @@ class Identity(nn.Module):
         return x
 
 
-class InfoNCE(nn.Module):
+class InfoNCE(nn.Module,io.WritableToFile):
     def __init__(self,fx=None,fc=None):
         super().__init__()
         if fx is None:
