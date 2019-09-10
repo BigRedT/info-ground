@@ -47,7 +47,7 @@ def train_model(model,dataloaders,exp_const,tb_writer):
 
     params = [
         {'params': model.object_encoder.parameters()},
-        {'params': model.self_sup_criterion.parameters(),'lr':1e-5},
+        {'params': model.self_sup_criterion.parameters()},
     ]
     if exp_const.optimizer == 'SGD':
         opt = optim.SGD(
