@@ -19,15 +19,21 @@ from .info_nce_loss import InfoNCE
 
 
 def create_info_nce_criterion(x_dim,c_dim,d):
+    # fx = nn.Sequential(
+    #     nn.Linear(x_dim,d),
+    #     nn.ReLU(),
+    #     nn.Linear(d,d))
+
+    # fy = nn.Sequential(
+    #     nn.Linear(c_dim,d),
+    #     nn.ReLU(),
+    #     nn.Linear(d,d))
+    
     fx = nn.Sequential(
-        nn.Linear(x_dim,d),
-        nn.ReLU(),
-        nn.Linear(d,d))
+        nn.Linear(x_dim,d))
 
     fy = nn.Sequential(
-        nn.Linear(c_dim,d),
-        nn.ReLU(),
-        nn.Linear(d,d))
+        nn.Linear(c_dim,d))
 
     criterion = InfoNCE(fx.cuda(),fy.cuda())
     
@@ -35,15 +41,14 @@ def create_info_nce_criterion(x_dim,c_dim,d):
 
 
 def train_model(model,dataloaders,exp_const,tb_writer):
-    criterion = create_info_nce_criterion(
-        model.object_encoder.const.object_feature_dim,
-        model.object_encoder.const.context_layer.hidden_size,
-        model.object_encoder.const.context_layer.hidden_size//2)
-    
-    params = itertools.chain(
-        model.object_encoder.parameters(),
-        criterion.parameters())
-    
+    # params = itertools.chain(
+    #     model.object_encoder.parameters(),
+    #     model.self_sup_criterion.parameters())
+
+    params = [
+        {'params': model.object_encoder.parameters()},
+        {'params': model.self_sup_criterion.parameters(),'lr':1e-5},
+    ]
     if exp_const.optimizer == 'SGD':
         opt = optim.SGD(
             params,
@@ -60,17 +65,13 @@ def train_model(model,dataloaders,exp_const,tb_writer):
         step = 0
     else:
         step = model.const.model_num
-        criterion.load_state_dict(torch.load(
-            os.path.join(
-                exp_const.model_dir,
-                f'self_sup_criterion_{step}')))
 
-
+    best_val_loss = 10000
     for epoch in range(exp_const.num_epochs):
         for it,data in enumerate(dataloaders['train']):
             # Set mode
             model.object_encoder.train()
-            criterion.train()
+            model.self_sup_criterion.train()
 
             # Forward pass
             object_features = data['features'].cuda()
@@ -82,11 +83,12 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                 pad_mask)
                 
             # Computer loss
-            loss = criterion(
+            self_sup_loss = model.self_sup_criterion(
                 object_features,
                 context_object_features,
                 object_mask)
-            
+            loss = self_sup_loss
+
             # Backward pass
             opt.zero_grad()
             loss.backward()
@@ -94,7 +96,10 @@ def train_model(model,dataloaders,exp_const,tb_writer):
 
             if step%exp_const.log_step==0:
                 log_items = {
+                    'Self_Sup_Loss/Train': self_sup_loss.item(),
                     'Loss': loss.item(),
+                    'Step': step,
+                    'Lr': exp_const.lr,
                 }
 
                 log_str = f'Epoch: {epoch} | Iter: {it} | Step: {step} | '
@@ -110,60 +115,102 @@ def train_model(model,dataloaders,exp_const,tb_writer):
             if step%exp_const.model_save_step==0:
                 save_items = {
                     'object_encoder': model.object_encoder,
-                    'self_sup_criterion': criterion,
+                    'self_sup_criterion': model.self_sup_criterion,
                 }
 
                 for name,nn_model in save_items.items():
                     model_path = os.path.join(
                         exp_const.model_dir,
                         f'{name}_{step}')
-                    torch.save(nn_model.state_dict(),model_path)
+                    torch.save({
+                        'state_dict': nn_model.state_dict(),
+                        'step': step,
+                        'val_loss': None,
+                        'prev_best_val_loss': best_val_loss},
+                        model_path)
 
-            # if step%exp_const.val_step==0:
-            #     eval_results = eval_model(
-            #         model,
-            #         dataloaders['val'],
-            #         exp_const,
-            #         step)
-            #     print(eval_results)
+            if step%exp_const.val_step==0:
+                eval_results = eval_model(
+                    model,
+                    dataloaders['val'],
+                    exp_const,
+                    step)
+                print('Val reults:',eval_results)
+                tb_writer.add_scalar(
+                    'Self_Sup_Loss/Val',
+                    eval_results['self_sup_loss'],
+                    step)
+                val_loss = eval_results['self_sup_loss']
+                if val_loss < best_val_loss:                    
+                    print(f'Saving best model at {step} ...')
+                    save_items = {
+                        'best_object_encoder': model.object_encoder,
+                        'best_self_sup_criterion': model.self_sup_criterion,
+                    }
+
+                    for name,nn_model in save_items.items():
+                        model_path = os.path.join(
+                            exp_const.model_dir,
+                            name)
+                        torch.save({
+                            'state_dict':nn_model.state_dict(),
+                            'step': step,
+                            'val_loss': val_loss,
+                            'prev_best_val_loss': best_val_loss},
+                            model_path)
+
+                    best_val_loss = val_loss
 
             step += 1
 
 
-# def eval_model(model,dataloader,exp_const,step):
-#     # Set mode
-#     model.net.eval()
+def eval_model(model,dataloader,exp_const,step):
+    # Set mode
+    model.object_encoder.eval()
+    model.self_sup_criterion.eval()
 
-#     avg_loss = 0
-#     num_samples = 0
-#     for it,data in enumerate(tqdm(dataloader)):
-#         if (exp_const.num_val_samples is not None) and \
-#             (num_samples >= exp_const.num_val_samples):
-#                 break
+    avg_self_sup_loss = 0
+    num_samples = 0
+    for it,data in enumerate(tqdm(dataloader)):
+        if (exp_const.num_val_samples is not None) and \
+            (num_samples >= exp_const.num_val_samples):
+                break
 
-#         # Forward pass
-#         feats = data['feats'].cuda()
-#         labels = data['labels'].cuda()
-#         logits = model.net(feats)
+        # Forward pass
+        object_features = data['features'].cuda()
+        object_mask = data['object_mask'].cuda()
+        pad_mask = data['pad_mask'].cuda()
+        context_object_features = model.object_encoder(
+            object_features,
+            object_mask,
+            pad_mask)
+            
+        # Computer loss
+        self_sup_loss = model.self_sup_criterion(
+            object_features,
+            context_object_features,
+            object_mask)  
 
-#         # Computer loss
-#         loss = criterion(logits,labels)    
+        # Aggregate loss or accuracy
+        batch_size = object_features.size(0)
+        num_samples += batch_size
+        avg_self_sup_loss += (self_sup_loss.item()*batch_size)
 
-#         # Aggregate loss or accuracy
-#         batch_size = feats.size(0)
-#         num_samples += batch_size
-#         avg_loss += (loss.data[0]*batch_size)
+    avg_self_sup_loss = avg_self_sup_loss / num_samples
 
-#     avg_loss = avg_loss / num_samples
+    eval_results = {
+        'self_sup_loss': avg_self_sup_loss, 
+    }
 
-#     eval_results = {
-#         'Avg Loss': avg_loss, 
-#     }
-
-#     return eval_results
+    return eval_results
 
 
 def main(exp_const,data_const,model_const):
+    np.random.seed(exp_const.seed)
+    torch.manual_seed(exp_const.seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
     io.mkdir_if_not_exists(exp_const.exp_dir,recursive=True)
     io.mkdir_if_not_exists(exp_const.log_dir)
     io.mkdir_if_not_exists(exp_const.model_dir)
@@ -183,12 +230,21 @@ def main(exp_const,data_const,model_const):
     model = Constants()
     model.const = model_const
     model.object_encoder = ObjectEncoder(model.const.object_encoder)
+    model.self_sup_criterion = create_info_nce_criterion(
+        model.object_encoder.const.object_feature_dim,
+        model.object_encoder.const.context_layer.hidden_size,
+        model.object_encoder.const.context_layer.hidden_size)
     if model.const.model_num != -1:
         model.object_encoder.load_state_dict(
-            torch.load(model.const.object_encoder_path))
+            torch.load(model.const.object_encoder_path)['state_dict'])
+        model.self_sup_criterion.load_state_dict(
+            torch.load(model.const.self_sup_criterion_path)['state_dict'])
     model.object_encoder.cuda()
+    model.self_sup_criterion.cuda()
     model.object_encoder.to_file(
         os.path.join(exp_const.exp_dir,'object_encoder.txt'))
+    model.self_sup_criterion.to_file(
+        os.path.join(exp_const.exp_dir,'self_supervised_criterion.txt'))
 
     print('Creating dataloader ...')
     dataloaders = {}
@@ -197,12 +253,14 @@ def main(exp_const,data_const,model_const):
         
         if mode=='train':
             shuffle=True
+            batch_size=exp_const.train_batch_size
         else:
-            shuffle=False
+            shuffle=True
+            batch_size=exp_const.val_batch_size
 
         dataloaders[mode] = DataLoader(
             dataset,
-            batch_size=exp_const.batch_size,
+            batch_size=batch_size,
             shuffle=shuffle,
             num_workers=exp_const.num_workers)
 
