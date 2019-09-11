@@ -52,7 +52,7 @@ def load_mat_object(file_name):
 
 
 def load_yaml_object(file_name):
-    return yaml.load(read(file_name, 'r'))
+    return yaml.load(read(file_name, 'r'),Loader=yaml.FullLoader)
 
 
 def load_h5py_object(file_name):
