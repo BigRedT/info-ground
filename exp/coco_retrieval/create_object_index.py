@@ -13,25 +13,31 @@ from global_constants import coco_paths
     type=str,
     help='Path to labels')
 @click.option(
+    '--scores_hdf5',
+    type=str,
+    help='Path to scores')
+@click.option(
     '--object_index_json',
     type=str,
-    help='Path to object index json relative to proc_dir')
+    help='Path to object index json')
 def main(**kwargs):
     os.environ['HDF5_USE_FILE_LOCKING']="FALSE"
-    f = io.load_h5py_object(kwargs['labels_hdf5'])
+    labels_f = io.load_h5py_object(kwargs['labels_hdf5'])
+    scores_f = io.load_h5py_object(kwargs['scores_hdf5'])
     
     num_objects = len(COCO_INSTANCE_CATEGORY_NAMES)
     object_index = [None]*num_objects
     for i in range(num_objects):
         object_index[i] = []
 
-    for image_id in tqdm(f.keys()):
-        labels = f[image_id][()]
+    for image_id in tqdm(labels_f.keys()):
+        labels = labels_f[image_id][()]
+        scores = scores_f[image_id][()]
         for i,label in enumerate(labels):
-            object_index[label].append((image_id,i))
+            if scores[i] > 0.5:
+                object_index[label].append((image_id,i))
 
-    filepath = os.path.join(coco_paths['proc_dir'],kwargs['object_index_json'])
-    io.dump_json_object(object_index,filepath)
+    io.dump_json_object(object_index,kwargs['object_index_json'])
 
 
 if __name__=='__main__':
