@@ -7,9 +7,9 @@ python -m exp.coco_retrieval.find_knn \
     --features_hdf5 "${EXP_DIR}/context_features_${SUBSET}_best.hdf5" \
     --search_objects_json "${EXP_DIR}/search_objects_${SUBSET}_best.json" \
     --search_features_hdf5 "${EXP_DIR}/search_features_${SUBSET}_best.hdf5" \
-    --num_queries 10 \
+    --num_queries 20 \
     --num_nbrs 3 \
     --anno_subset $SUBSET \
     --knn_json "${EXP_DIR}/knn_context_features_${SUBSET}_best.json" \
-    --vis_dir "${EXP_DIR}/vis/knn_context_features/${SUBSET}" \
-    --load_knn_json
+    --vis_dir "${EXP_DIR}/vis/knn_context_features/${SUBSET}" #\
+    # --load_knn_json
