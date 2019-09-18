@@ -237,7 +237,7 @@ def main(**kwargs):
 
     if kwargs['load_knn_json'] is not True:
         features_f = io.load_h5py_object(kwargs['features_hdf5'])
-        object_index = io.load_json_object(kwargs['object_index_json'])[:20]
+        object_index = io.load_json_object(kwargs['object_index_json'])#[:20]
         num_objects = len(object_index)
 
         print('Creating image_id to caption map ...')
