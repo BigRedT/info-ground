@@ -58,7 +58,9 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
         log_softmax = F.log_softmax(logits,1) # Select image given word
         loss = -log_softmax.mean(2).diag().mean()
 
-        return loss
+        att = att.unsqueeze(4)
+        
+        return loss, att
 
 
 class KVLayer(nn.Module,io.WritableToFile):
