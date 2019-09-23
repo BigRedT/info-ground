@@ -98,7 +98,7 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                 token_ids = torch.LongTensor(token_ids).cuda()
                 word_features = model.cap_encoder(token_ids)
 
-            lang_sup_loss = model.lang_sup_criterion(
+            lang_sup_loss, att = model.lang_sup_criterion(
                 context_object_features,
                 word_features.detach())
 
@@ -224,7 +224,7 @@ def eval_model(model,dataloader,exp_const,step):
             data['caption'])
         token_ids = torch.LongTensor(token_ids).cuda()
         word_features = model.cap_encoder(token_ids)
-        lang_sup_loss = model.lang_sup_criterion(
+        lang_sup_loss, att = model.lang_sup_criterion(
             context_object_features,
             word_features)
 
