@@ -36,9 +36,7 @@ def main(**kwargs):
     
     data_const = Constants()
     data_const.features_hdf5 = kwargs['features_hdf5']
-    data_const.context_features_hdf5 = os.path.join(
-        exp_const.exp_dir,
-        kwargs['context_features_hdf5'])
+    data_const.context_features_hdf5 = kwargs['context_features_hdf5']
 
     model_const = Constants()
     model_const.object_encoder = ObjectEncoderConstants()
