@@ -98,11 +98,13 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                 token_ids = torch.LongTensor(token_ids).cuda()
                 word_features = model.cap_encoder(token_ids)
 
+            token_mask = model.cap_encoder.get_token_mask(tokens)
+            token_mask = torch.cuda.FloatTensor(token_mask)
             lang_sup_loss, att = model.lang_sup_criterion(
                 context_object_features,
-                word_features.detach())
+                word_features.detach(),
+                token_mask)
 
-            #lang_sup_loss = 0*self_sup_loss
             loss = self_sup_loss + lang_sup_loss
 
             # Backward pass
@@ -174,6 +176,7 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                     save_items = {
                         'best_object_encoder': model.object_encoder,
                         'best_self_sup_criterion': model.self_sup_criterion,
+                        'best_lang_sup_criterion': model.lang_sup_criterion,
                     }
 
                     for name,nn_model in save_items.items():
@@ -196,6 +199,7 @@ def eval_model(model,dataloader,exp_const,step):
     # Set mode
     model.object_encoder.eval()
     model.self_sup_criterion.eval()
+    model.lang_sup_criterion.eval()
 
     avg_self_sup_loss = 0
     avg_lang_sup_loss = 0
@@ -224,9 +228,13 @@ def eval_model(model,dataloader,exp_const,step):
             data['caption'])
         token_ids = torch.LongTensor(token_ids).cuda()
         word_features = model.cap_encoder(token_ids)
+
+        token_mask = model.cap_encoder.get_token_mask(tokens)
+        token_mask = torch.cuda.FloatTensor(token_mask)
         lang_sup_loss, att = model.lang_sup_criterion(
             context_object_features,
-            word_features)
+            word_features,
+            token_mask)
 
         # Aggregate loss or accuracy
         batch_size = object_features.size(0)

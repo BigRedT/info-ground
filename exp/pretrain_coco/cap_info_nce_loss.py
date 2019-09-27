@@ -28,11 +28,12 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
         self.fo = fo
         self.fw = fw
         
-    def forward(self,o,w):
+    def forward(self,o,w,mask):
         """
         Input:
         :o: BoxToxDo object features
         :w: BwxTwxDw caption word features
+        :mask: BwxTw word mask
         """
         assert(o.size()[:1]==w.size()[:1]), 'Bo==Bw'
         
@@ -56,9 +57,13 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
         Vw = Vw.unsqueeze(1) # Bwx1xTwxD
         logits = torch.sum(att_Vo*Vw,3) # BwxBoxTw
         log_softmax = F.log_softmax(logits,1) # Select image given word
-        loss = -log_softmax.mean(2).diag().mean()
+        mask = mask.unsqueeze(1) # Bwx1xTw
+        log_softmax = (1-mask)*log_softmax
+        num_non_mask = torch.sum(1-mask,2,keepdim=True) # Bwx1x1
+        log_softmax = log_softmax / (num_non_mask + 1e-6)
+        loss = -log_softmax.sum(2).diag().mean()
 
-        att = att.unsqueeze(4)
+        att = att.squeeze(4)
         
         return loss, att
 

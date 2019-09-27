@@ -1,6 +1,7 @@
 import copy
 import torch
 import torch.nn as nn
+import numpy as np
 import pytorch_transformers
 
 import utils.io as io
@@ -29,6 +30,14 @@ class CapEncoder(nn.Module,io.WritableToFile):
     @property
     def pad_token(self):
         return self.tokenizer.pad_token
+
+    @property
+    def cls_token(self):
+        return self.tokenizer.cls_token
+
+    @property
+    def sep_token(self):
+        return self.tokenizer.sep_token
 
     @property
     def pad_token_id(self):
@@ -83,6 +92,18 @@ class CapEncoder(nn.Module,io.WritableToFile):
                     max_token_len)
         
         return batch_token_ids, batch_tokens, token_lens
+
+    def get_token_mask(self,batch_tokens):
+        B = len(batch_tokens)
+        T = len(batch_tokens[0])
+        mask = np.zeros([B,T],dtype=np.float32)
+        for b in range(B):
+            tokens = batch_tokens[b]
+            for t in range(T):
+                if tokens[t] in [self.pad_token,self.sep_token,self.cls_token]:
+                    mask[b,t] = 1
+        
+        return mask
 
     def forward(self,batch_token_ids):
         return self.model(batch_token_ids)[0]
