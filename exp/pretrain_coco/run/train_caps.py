@@ -43,8 +43,8 @@ def main(**kwargs):
     exp_const.momentum = None
     exp_const.num_epochs = 10
     exp_const.log_step = 20
-    exp_const.model_save_step = 2000 # 400000/200
-    exp_const.val_step = 250
+    exp_const.model_save_step = 2000*4 # 400000/200
+    exp_const.val_step = 250*4 # 250*200/50
     exp_const.num_val_samples = None
     exp_const.train_batch_size = kwargs['train_batch_size']
     exp_const.val_batch_size = 20
@@ -65,10 +65,10 @@ def main(**kwargs):
         f'object_encoder_{model_const.model_num}')
     model_const.self_sup_criterion_path = os.path.join(
         exp_const.model_dir,
-        f'self_supervised_criterion_{model_const.model_num}')
+        f'self_sup_criterion_{model_const.model_num}')
     model_const.lang_sup_criterion_path = os.path.join(
         exp_const.model_dir,
-        f'lang_supervised_criterion_{model_const.model_num}')
+        f'lang_sup_criterion_{model_const.model_num}')
 
     train(exp_const,data_const,model_const)
 
