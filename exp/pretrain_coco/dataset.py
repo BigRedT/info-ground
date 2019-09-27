@@ -49,6 +49,12 @@ class DetFeatDataset(Dataset):
         features = f[image_name][()]
         f.close()
         return features
+    
+    def read_boxes(self,image_name):
+        f = io.load_h5py_object(self.const.boxes_hdf5)
+        boxes = f[image_name][()]
+        f.close()
+        return boxes
 
     def pad_object_features(self,features):
         T,D = features.shape # num_objects x feat. dim
