@@ -16,8 +16,19 @@ COCO_INSTANCE_CATEGORY_NAMES = [
     'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
 ]
 
-def create_detector():
-    model = fasterrcnn_resnet50_fpn(pretrained=True)
+def create_detector(dataset='coco'):
+    if dataset in ['coco','default']:
+        print('COCO/Default configuration for detector')
+        model = fasterrcnn_resnet50_fpn(pretrained=True)
+    elif dataset=='hico':
+        print('HICO configuration for detector')
+        model = fasterrcnn_resnet50_fpn(
+            pretrained=True,
+            box_nms_thresh=0.3,
+            box_score_thresh=0.01)
+    else:
+        assert(False),'Dataset not implemented'
+
     return model
     
 

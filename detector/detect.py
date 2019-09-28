@@ -29,6 +29,11 @@ from .model import create_detector
     type=int,
     default=5,
     help='Number of workers')
+@click.option(
+    '--dataset',
+    type=click.Choice(['coco','default','hico']),
+    default='coco',
+    help='Choose detector configuration according to dataset')
 def main(**kwargs):
     print('Creating dataloader ...')
     dataset = DetInputDataset(kwargs['det_input'])
@@ -39,7 +44,7 @@ def main(**kwargs):
         collate_fn=dataset.create_collate_fn())
 
     print('Creating detector ...')
-    model = create_detector()
+    model = create_detector(kwargs['dataset'])
     model = model.cuda()
     model.eval()
 
