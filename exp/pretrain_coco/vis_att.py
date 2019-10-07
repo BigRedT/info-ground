@@ -18,7 +18,8 @@ from .object_encoder import ObjectEncoder
 from .cap_encoder import CapEncoder
 from .dataset import DetFeatDataset
 from .info_nce_loss import InfoNCE
-from .cap_info_nce_loss import KVLayer, CapInfoNCE
+#from .cap_info_nce_loss import KVLayer, CapInfoNCE
+from .factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
 from utils.bbox_utils import vis_bbox
 from utils.html_writer import HtmlWriter
 
@@ -35,11 +36,21 @@ def create_info_nce_criterion(x_dim,c_dim,d):
     return criterion
 
 
-def create_cap_info_nce_criterion(o_dim,w_dim,d):
-    fo = KVLayer(o_dim,d)
-    fw = KVLayer(w_dim,d)
+# def create_cap_info_nce_criterion(o_dim,w_dim,d):
+#     fo = KVLayer(o_dim,d)
+#     fw = KVLayer(w_dim,d)
 
-    criterion = CapInfoNCE(fo,fw)
+#     criterion = CapInfoNCE(fo,fw)
+    
+#     return criterion
+
+
+def create_cap_info_nce_criterion(o_dim,u_dim,w_dim,d):
+    fo = FLayer(o_dim,d)
+    fw = FLayer(w_dim,d)
+    ku = KLayer(u_dim,d)
+    kw = KLayer(w_dim,d)
+    criterion = CapInfoNCE(fo,fw,ku,kw)
     
     return criterion
 
@@ -72,6 +83,7 @@ def eval_model(model,dataloader,exp_const):
         token_mask = torch.cuda.FloatTensor(token_mask)
         lang_sup_loss, att = model.lang_sup_criterion(
             context_object_features,
+            object_features,
             word_features,
             token_mask)
 
@@ -164,6 +176,7 @@ def main(exp_const,data_const,model_const):
     model.cap_encoder = CapEncoder(model.const.cap_encoder)
     model.lang_sup_criterion = create_cap_info_nce_criterion(
         model.object_encoder.const.context_layer.hidden_size,
+        model.object_encoder.const.object_feature_dim,
         model.cap_encoder.model.config.hidden_size,
         model.cap_encoder.model.config.hidden_size//2)
     if model.const.model_num != -1:
