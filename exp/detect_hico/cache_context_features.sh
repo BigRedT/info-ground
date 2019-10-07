@@ -1,4 +1,4 @@
-EXP_NAME="self_factor_lang_sup_train_batch_size_50"
+EXP_NAME="factor_lang_sup_train_batch_size_50"
 HICO_PROC="/home/tgupta6/Code/no_frills_hoi_det_context/data_symlinks/hico_processed"
 HICO_FEAT="/home/tgupta6/Code/no_frills_hoi_det_context/data_symlinks/hico_feat"
 COCO_EXP="/shared/rsaas/tgupta6/Data/context-regions/coco_exp"
