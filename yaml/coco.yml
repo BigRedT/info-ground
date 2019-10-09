@@ -24,3 +24,6 @@ extracted:
     captions:
       train: annotations/captions_train2014.json
       val: annotations/captions_val2014.json
+    noun_tokens:
+      train: annotations/noun_tokens_train2014.json
+      val: annotations/noun_tokens_val2014.json
