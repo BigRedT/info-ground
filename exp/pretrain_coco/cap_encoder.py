@@ -104,6 +104,22 @@ class CapEncoder(nn.Module,io.WritableToFile):
                     mask[b,t] = 1
         
         return mask
+    
+    def select_noun_embed(self,embed,noun_token_ids):
+        B,max_noun_tokens = noun_token_ids.size()
+        D = embed.size(2)
+        noun_embed = torch.zeros([B,max_noun_tokens,D],dtype=torch.float32).cuda()
+        mask = torch.zeros([B,max_noun_tokens],dtype=torch.float32).cuda()
+        for b in range(B):
+            for j in range(max_noun_tokens):
+                token_id = noun_token_ids[b,j]
+                if token_id == -1:
+                    mask[b,j] = 1
+                    continue
+                
+                noun_embed[b,j] = embed[b,token_id]
+        
+        return noun_embed, mask
 
     def forward(self,batch_token_ids):
         return self.model(batch_token_ids)[0]
