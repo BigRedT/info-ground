@@ -59,8 +59,12 @@ class ObjectEncoder(nn.Module,io.WritableToFile):
         B,T,D = object_features.size()
         transformer_input = self.input_layer(
             object_features.view(-1,D)).view(B,T,-1)
-        object_context_features = self.context_layer(
-            transformer_input)['last_hidden_states']
+        context_layer_output = self.context_layer(transformer_input)
+        object_context_features = context_layer_output['last_hidden_states']
+        
+        attention = context_layer_output['attention']
+        if attention is not None:
+            return object_context_features, attention 
 
         return object_context_features
 
