@@ -81,6 +81,7 @@ class ContextLayer(BertEncoder):
 
 if __name__=='__main__':
     const = ContextLayerConstants()
+    const.output_attentions = False
     context_layer = ContextLayer(const)
     B,T,D = (5,7,768)
     hidden_states = torch.rand(B,T,D)
