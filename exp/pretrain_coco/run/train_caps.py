@@ -56,6 +56,9 @@ def main(**kwargs):
         'val': DetFeatDatasetConstants('val'),
     }
 
+    data_const['train'].read_noun_tokens = True
+    data_const['val'].read_noun_tokens = True
+
     model_const = Constants()
     model_const.model_num = kwargs['model_num']
     model_const.object_encoder = ObjectEncoderConstants()

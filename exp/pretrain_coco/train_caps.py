@@ -108,9 +108,13 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                     data['caption'])
                 token_ids = torch.LongTensor(token_ids).cuda()
                 word_features = model.cap_encoder(token_ids)
+                noun_token_ids = data['noun_token_ids'].cuda()
+                word_features, token_mask = model.cap_encoder.select_noun_embed(
+                    word_features,
+                    noun_token_ids)
 
-            token_mask = model.cap_encoder.get_token_mask(tokens)
-            token_mask = torch.cuda.FloatTensor(token_mask)
+            #token_mask = model.cap_encoder.get_token_mask(tokens)
+            #token_mask = torch.cuda.FloatTensor(token_mask)
             lang_sup_loss, att = model.lang_sup_criterion(
                 context_object_features,
                 object_features,
@@ -240,14 +244,19 @@ def eval_model(model,dataloader,exp_const,step):
             data['caption'])
         token_ids = torch.LongTensor(token_ids).cuda()
         word_features = model.cap_encoder(token_ids)
+        noun_token_ids = data['noun_token_ids'].cuda()
+        word_features, token_mask = model.cap_encoder.select_noun_embed(
+            word_features,
+            noun_token_ids)
 
-        token_mask = model.cap_encoder.get_token_mask(tokens)
-        token_mask = torch.cuda.FloatTensor(token_mask)
+        #token_mask = model.cap_encoder.get_token_mask(tokens)
+        #token_mask = torch.cuda.FloatTensor(token_mask)
         lang_sup_loss, att = model.lang_sup_criterion(
             context_object_features,
             object_features,
             word_features,
             token_mask)
+        
 
         # Aggregate loss or accuracy
         batch_size = object_features.size(0)
