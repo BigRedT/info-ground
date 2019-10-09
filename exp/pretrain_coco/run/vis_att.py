@@ -22,7 +22,7 @@ from ..vis_att import main as vis_att
     '--model_num',
     default=-1,
     type=int,
-    help='Model number. -1 implies begining of training.')
+    help='Model number. -1 implies begining of training. -100 means best')
 def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.log_dir = os.path.join(exp_const.exp_dir,'logs')
@@ -40,12 +40,21 @@ def main(**kwargs):
     model_const.model_num = kwargs['model_num']
     model_const.object_encoder = ObjectEncoderConstants()
     model_const.cap_encoder = CapEncoderConstants()
-    model_const.object_encoder_path = os.path.join(
-        exp_const.model_dir,
-        f'object_encoder_{model_const.model_num}')
-    model_const.lang_sup_criterion_path = os.path.join(
-        exp_const.model_dir,
-        f'lang_sup_criterion_{model_const.model_num}')
+
+    if model_const.model_num==-100:
+        model_const.object_encoder_path = os.path.join(
+            exp_const.model_dir,
+            f'best_object_encoder')
+        model_const.lang_sup_criterion_path = os.path.join(
+            exp_const.model_dir,
+            f'best_lang_sup_criterion')
+    else:
+        model_const.object_encoder_path = os.path.join(
+            exp_const.model_dir,
+            f'object_encoder_{model_const.model_num}')
+        model_const.lang_sup_criterion_path = os.path.join(
+            exp_const.model_dir,
+            f'lang_sup_criterion_{model_const.model_num}')
 
     vis_att(exp_const,data_const,model_const)
 
