@@ -29,12 +29,20 @@ class DetFeatDatasetConstants(Constants):
             coco_paths['extracted']['annos']['captions'][subset])
         self.max_objects = 15
         self.mask_prob = 0.2
+        self.noun_tokens_json = os.path.join(
+            coco_paths['proc_dir'],
+            coco_paths['extracted']['annos']['noun_tokens'][subset])
+        self.read_noun_tokens = False
+        self.max_noun_tokens = 6
 
 
 class DetFeatDataset(Dataset):
     def __init__(self,const):
         self.const = deepcopy(const)
         self.annos = io.load_json_object(self.const.annos_json)
+        if self.const.read_noun_tokens is True:
+            self.noun_token_ids = io.load_json_object(
+                self.const.noun_tokens_json)
         os.environ['HDF5_USE_FILE_LOCKING']="FALSE"
         
     def get_image_name(self,subset,image_id):
@@ -78,6 +86,16 @@ class DetFeatDataset(Dataset):
         mask = mask < self.const.mask_prob
         return mask
 
+    def pad_noun_token_ids(self,noun_token_ids):
+        num_tokens = len(noun_token_ids)
+        if num_tokens >= self.const.max_noun_tokens:
+            noun_token_ids = noun_token_ids[:self.const.max_noun_tokens]
+        else:
+            padding = [-1]*(self.const.max_noun_tokens - num_tokens)
+            noun_token_ids = noun_token_ids + padding
+
+        return noun_token_ids
+
     def __getitem__(self, i):
         anno = self.annos['annotations'][i]
         image_id = anno['image_id']
@@ -98,11 +116,17 @@ class DetFeatDataset(Dataset):
             'object_mask': object_mask,
             'pad_mask': pad_mask,
         }
+        if self.const.read_noun_tokens is True:
+            noun_token_ids = self.noun_token_ids[i]['token_ids']
+            to_return['noun_token_ids'] = \
+                np.array(self.pad_noun_token_ids(noun_token_ids),dtype=np.int32)
+
         return to_return
 
 
 if __name__=='__main__':
     const = DetFeatDatasetConstants('train')
+    const.read_noun_tokens = True
     dataset = DetFeatDataset(const)
     print(len(dataset))
     dataloader = DataLoader(dataset,3,num_workers=3)
