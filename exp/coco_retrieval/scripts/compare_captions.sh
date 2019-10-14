@@ -1,4 +1,4 @@
-EXP_DIR="${PWD}/symlinks/rsaas/coco_exp/factor_lang_sup_train_batch_size_50"
+EXP_DIR="${PWD}/symlinks/rsaas/coco_exp/noun_factor_lang_sup_train_batch_size_50"
 KNN_JSON="${EXP_DIR}/knn_context_features_val_best.json"
 python -m exp.coco_retrieval.compare_captions \
     --knn_json $KNN_JSON \

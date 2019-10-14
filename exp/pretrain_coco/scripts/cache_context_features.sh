@@ -1,4 +1,4 @@
-EXP_NAME="factor_lang_sup_train_batch_size_50"
+EXP_NAME="noun_factor_lang_sup_train_batch_size_50"
 COCO_EXP="/shared/rsaas/tgupta6/Data/context-regions/coco_exp"
 COCO_PROC="/data/tgupta6/context-regions/coco_proc"
 python -m exp.pretrain_coco.run.cache_context_features \
