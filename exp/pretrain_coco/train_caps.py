@@ -256,7 +256,6 @@ def eval_model(model,dataloader,exp_const,step):
             object_features,
             word_features,
             token_mask)
-        
 
         # Aggregate loss or accuracy
         batch_size = object_features.size(0)
