@@ -14,15 +14,22 @@ class CapEncoderConstants(io.JsonSerializableClass):
         self.tokenizer = 'BertTokenizer'
         self.pretrained_weights = 'bert-base-uncased'
         self.max_len = 15
+        self.output_attentions = False
 
 
 class CapEncoder(nn.Module,io.WritableToFile):
     def __init__(self,const):
         super().__init__()
         self.const = copy.deepcopy(const)
+        output_hidden_states = False
+        if self.const.output_attentions is True:
+            output_hidden_states = True
         self.model = getattr(
             pytorch_transformers,
-            self.const.model).from_pretrained(self.const.pretrained_weights)
+            self.const.model).from_pretrained(
+                self.const.pretrained_weights,
+                output_hidden_states=output_hidden_states,
+                output_attentions=self.const.output_attentions)
         self.tokenizer = getattr(
             pytorch_transformers,
             self.const.tokenizer).from_pretrained(self.const.pretrained_weights)
@@ -122,12 +129,19 @@ class CapEncoder(nn.Module,io.WritableToFile):
         return noun_embed, mask
 
     def forward(self,batch_token_ids):
-        return self.model(batch_token_ids)[0]
-
+        output = self.model(batch_token_ids)
+        if self.const.output_attentions is True:
+            embed = output[0]
+            att = output[-1]
+            return embed, att
+        else:
+            embed = output[0]
+            return embed
 
 
 if __name__=='__main__':
     const = CapEncoderConstants()
+    const.output_attentions = True
     cap_encoder = CapEncoder(const)
     caps = ['i am here for fun','what are you here for?']
     token_ids, tokens, token_lens = cap_encoder.tokenize_batch(caps)
