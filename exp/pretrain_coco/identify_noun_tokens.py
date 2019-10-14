@@ -57,7 +57,7 @@ def align_pos_tokens(pos_tags,tokens):
 def get_noun_token_ids(pos_tags,alignment):
     token_ids = []
     for i, (word,tag) in enumerate(pos_tags):
-        if tag in ['NN','NNS','NNP','NNPS']:
+        if tag in ['NN','NNS','NNP','NNPS','VB','VBD','VBG','VBN','VBP','VBZ']:
             for idx in alignment[i]:
                 token_ids.append(idx)
             
