@@ -16,15 +16,21 @@ import skimage.io as skio
 
 import utils.io as io
 from utils.constants import save_constants, Constants
-from .object_encoder import ObjectEncoder
-from .cap_encoder import CapEncoder
+from .models.object_encoder import ObjectEncoder
+from .models.cap_encoder import CapEncoder
 from .dataset import DetFeatDataset
-from .info_nce_loss import InfoNCE
-#from .cap_info_nce_loss import KVLayer, CapInfoNCE
-from .factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
+from .models.info_nce_loss import InfoNCE
+from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
 from utils.bbox_utils import vis_bbox
 from utils.html_writer import HtmlWriter
 
+
+def sinkhorn(att,K=3,eps=1e-6):
+    for k in range(K):
+        att = att / (eps + np.sum(att,0,keepdims=True))
+        att = att / (eps + np.sum(att,1,keepdims=True))
+    
+    return att
 
 def vis_att(att,words,filename):
     fig,ax = plt.subplots()
@@ -50,9 +56,21 @@ def vis_att(att,words,filename):
     plt.savefig(filename)
     return im
 
+
 def get_word_word_att(att):
     # att: [Bx12xWxW]*12
     return torch.max(torch.cat(att,1),1)[0]
+
+
+def get_word_word_att_soft(att,alpha=1):
+    # att: [Bx12xWxW]*12
+    new_att = [None]*len(att)
+    for i in range(len(att)):
+        new_att[i] = 1-torch.exp(torch.log(1-att[i]+1e-6).sum(1,keepdim=True))
+    
+    new_att = torch.cat(new_att,1)
+    return torch.max(new_att,1)[0]
+
 
 def eval_model(model,dataloader,exp_const):
     # Set mode
@@ -69,7 +87,7 @@ def eval_model(model,dataloader,exp_const):
         token_ids = torch.LongTensor(token_ids).cuda()
         word_features,att = model.cap_encoder(token_ids)
         
-        att = get_word_word_att(att)[0]
+        att = get_word_word_att_soft(att)[0]
         att = att.detach().cpu().numpy()
 
         noun_token_ids = data['noun_token_ids'][0].detach().numpy()
@@ -78,8 +96,12 @@ def eval_model(model,dataloader,exp_const):
         for i in noun_token_ids:
             for j in noun_token_ids:
                 att_mask[i,j] = 1
-        
+
         att = att*att_mask
+
+        if exp_const.sinkhorn==True:
+            att = sinkhorn(att)
+
         filename = os.path.join(exp_const.vis_dir,str(it) + '.png')
         att_im = vis_att(att,tokens[0],filename)
         col_dict = {

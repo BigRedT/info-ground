@@ -23,6 +23,15 @@ from utils.bbox_utils import vis_bbox, create_att
 from utils.html_writer import HtmlWriter
 
 
+def sinkhorn(att,K=3,eps=1e-6):
+    import pdb; pdb.set_trace()
+    for k in range(K):
+        att = att / (eps + np.sum(att,0,keepdims=True))
+        att = att / (eps + np.sum(att,1,keepdims=True))
+    import pdb; pdb.set_trace()
+    return att
+
+
 def create_info_nce_criterion(x_dim,c_dim,d):
     fx = nn.Sequential(
         nn.Linear(x_dim,d))
@@ -64,7 +73,6 @@ def agg_attention(attention):
 
 
 def compute_lang_guided_obj_obj_att(word_obj_att,word_word_att):
-    word_word_att = word_word_att.pow(0.5)
     att = torch.sum(
         word_word_att.unsqueeze(3)*word_obj_att.unsqueeze(1),2) # BxWxO
     obj_word_att = word_obj_att.permute(0,2,1) # BxOxW
@@ -140,6 +148,10 @@ def eval_model(model,dataloader,exp_const):
         _, indices = torch.topk(att,K,1)
         box_ids = indices.detach().cpu().numpy()
         att = att.detach().cpu().numpy()
+        
+        if exp_const.sinkhorn==True:
+            att = sinkhorn(att)
+
         query_att = np.transpose(np.max(att,0,keepdims=True))
         #att = att*query_att
 

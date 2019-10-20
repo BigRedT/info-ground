@@ -19,7 +19,7 @@ from .models.cap_encoder import CapEncoder
 from .dataset import DetFeatDataset
 from .models.info_nce_loss import InfoNCE
 from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
-from utils.bbox_utils import vis_bbox
+from utils.bbox_utils import vis_bbox, create_att
 from utils.html_writer import HtmlWriter
 
 
@@ -127,13 +127,27 @@ def eval_model(model,dataloader,exp_const):
             (0,255,0),
             (0,0,255)]
         for i in range(num_tokens):
-            box_img = img
+            box_img = 0*img
+            box_img = box_img.astype(np.float32)
+            for k in range(K):
+                if box_ids[i,k] >= len(boxes):
+                    break
+                
+                box_img = create_att(
+                    boxes[box_ids[i,k]],
+                    box_img,
+                    np.minimum(1,att[i,box_ids[i,k]]))
+            
+            box_img = box_img*img.astype(np.float32)
+            box_img = box_img.astype(np.uint8)
+
             for k in range(K):
                 box_img = vis_bbox(
                     boxes[box_ids[i,k]],
                     box_img,
                     colors[k],
-                    modify=False)
+                    modify=False,
+                    alpha=0)
 
             dst_filename = os.path.join(vis_dir,str(i)+'.jpg')
             skio.imsave(dst_filename,box_img)

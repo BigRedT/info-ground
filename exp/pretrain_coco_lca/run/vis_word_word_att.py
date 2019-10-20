@@ -4,8 +4,8 @@ import click
 from utils.constants import Constants, ExpConstants
 from global_constants import coco_paths
 from ..dataset import DetFeatDatasetConstants
-from ..object_encoder import ObjectEncoderConstants
-from ..cap_encoder import CapEncoderConstants
+from ..models.object_encoder import ObjectEncoderConstants
+from ..models.cap_encoder import CapEncoderConstants
 from ..vis_word_word_att import main as vis_word_word_att
 
 
@@ -22,7 +22,13 @@ def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.log_dir = os.path.join(exp_const.exp_dir,'logs')
     exp_const.model_dir = os.path.join(exp_const.exp_dir,'models')
-    exp_const.vis_dir = os.path.join(exp_const.exp_dir,'vis/word_word_attention')
+    exp_const.sinkhorn = False
+
+    vis_dir_name = 'vis/word_word_attention_soft'
+    if exp_const.sinkhorn==True:
+        vis_dir_name += '_sinkhorn'
+        
+    exp_const.vis_dir = os.path.join(exp_const.exp_dir,vis_dir_name)
     exp_const.num_vis_samples = 20
     exp_const.seed = 0
 
