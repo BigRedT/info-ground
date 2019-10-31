@@ -1,4 +1,4 @@
-EXP_DIR="/home/tgupta6/Code/context-regions/symlinks/rsaas/coco_exp/noun_factor_lang_sup_train_batch_size_50"
+EXP_DIR="/home/tgupta6/Code/context-regions/symlinks/rsaas/coco_exp/lca_lang_sup_gumbel_0.5_finetune"
 PROC_DIR="/home/tgupta6/Code/context-regions/symlinks/rsaas/coco_proc"
 SUBSET="val"
 python -m exp.coco_retrieval.find_knn \
