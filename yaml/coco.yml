@@ -27,3 +27,9 @@ extracted:
     noun_tokens:
       train: annotations/noun_tokens_train2014.json
       val: annotations/noun_tokens_val2014.json
+    verb_tokens:
+      train: annotations/verb_tokens_train2014.json
+      val: annotations/verb_tokens_val2014.json
+    verb_vocab:
+      train: annotations/verb_vocab_train2014.json
+      val: annotations/verb_vocab_val2014.json
