@@ -13,7 +13,7 @@ import numpy as np
 
 import utils.io as io
 from utils.constants import save_constants, Constants
-from .object_encoder import ObjectEncoder
+from .models.object_encoder import ObjectEncoder
 
 
 def cache(f,context_f,model):

@@ -94,7 +94,8 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                 object_features,
                 object_mask,
                 pad_mask)
-            obj_obj_att = torch.max(torch.cat(obj_obj_att,1),1)[0]
+            obj_obj_att = torch.cat(obj_obj_att,1)
+            #obj_obj_att = torch.max(torch.cat(obj_obj_att,1),1)[0]
                 
             # Computer self supervision loss
             self_sup_loss = model.self_sup_criterion(
@@ -135,7 +136,10 @@ def train_model(model,dataloaders,exp_const,tb_writer):
             att_loss = model.att_criterion(
                 obj_obj_att,
                 lang_guided_obj_obj_att.detach())
-            loss = 0*self_sup_loss + lang_sup_loss + 100*att_loss
+            loss = 0*self_sup_loss + lang_sup_loss + 10*att_loss
+
+            # print('DO NOT PROCEED')
+            # import pdb; pdb.set_trace()
 
             # Backward pass
             opt.zero_grad()
@@ -252,7 +256,8 @@ def eval_model(model,dataloader,exp_const,step):
             object_features,
             object_mask,
             pad_mask)
-        obj_obj_att = torch.max(torch.cat(obj_obj_att,1),1)[0]
+        obj_obj_att = torch.cat(obj_obj_att,1)
+        #obj_obj_att = torch.max(torch.cat(obj_obj_att,1),1)[0]
             
         # Compute loss
         self_sup_loss = model.self_sup_criterion(
@@ -302,7 +307,7 @@ def eval_model(model,dataloader,exp_const,step):
     avg_self_sup_loss = avg_self_sup_loss / num_samples
     avg_lang_sup_loss = avg_lang_sup_loss / num_samples
     avg_att_loss = avg_att_loss / num_samples
-    total_loss = 0*avg_self_sup_loss + avg_lang_sup_loss + 100*avg_att_loss
+    total_loss = 0*avg_self_sup_loss + avg_lang_sup_loss + 10*avg_att_loss
 
     eval_results = {
         'self_sup_loss': avg_self_sup_loss, 

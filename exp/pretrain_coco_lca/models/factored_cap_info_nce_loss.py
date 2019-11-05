@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.distributions.gumbel import Gumbel
 
 import utils.io as io
 
@@ -48,7 +49,9 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
         att = torch.sum(Kw*Ku,4,keepdim=True) # BwxBoxTwxTox1
         att = att / torch.sqrt(torch.tensor(D).float()) # BwxBoxTwxTox1
         att = F.softmax(att,3)
-
+        #att = self.gumbel_sample(att.squeeze(4)).unsqueeze(4)
+        att = att.detach()
+        
         o = o.unsqueeze(1) # Box1xToxDo
         V_o = self.fo(o)
         att_V_o = torch.sum(att*V_o,3) # BwxBoxTwxDo
@@ -67,6 +70,15 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
         att = att.squeeze(4)
         
         return loss, att
+    
+    def gumbel_sample(self,att,tau=0.5):
+        """
+        att: BwxBoxTwxTo
+        """
+        Bw,Bo,Tw,To = att.size()
+        dist = Gumbel(0,1)
+        g = dist.sample(att.size()).cuda()
+        return nn.functional.softmax((torch.log(att+1e-6) + g)/tau,-1)
 
 
 class KVLayer(nn.Module,io.WritableToFile):

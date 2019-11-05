@@ -4,7 +4,7 @@ import click
 from utils.constants import Constants, ExpConstants
 from global_constants import coco_paths
 from ..dataset import DetFeatDatasetConstants
-from ..object_encoder import ObjectEncoderConstants
+from ..models.object_encoder import ObjectEncoderConstants
 from ..cache_context_features import main as cache_context_features
 
 

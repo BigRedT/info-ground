@@ -31,7 +31,7 @@ def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.log_dir = os.path.join(exp_const.exp_dir,'logs')
     exp_const.model_dir = os.path.join(exp_const.exp_dir,'models')
-    exp_const.sinkhorn = True
+    exp_const.sinkhorn = False
 
     vis_dir_name = 'vis/self_attention'
     if kwargs['lang']==True:

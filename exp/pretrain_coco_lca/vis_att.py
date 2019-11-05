@@ -185,8 +185,10 @@ def main(exp_const,data_const,model_const):
         model.cap_encoder.model.config.hidden_size//2)
     if model.const.model_num != -1:
         print('Loading model num',model.const.model_num,'...')
+        loaded_object_encoder = torch.load(model.const.object_encoder_path)
+        print(loaded_object_encoder['step'])
         model.object_encoder.load_state_dict(
-            torch.load(model.const.object_encoder_path)['state_dict'])
+            loaded_object_encoder['state_dict'])
         model.lang_sup_criterion.load_state_dict(
             torch.load(model.const.lang_sup_criterion_path)['state_dict'])
     model.object_encoder.cuda()
