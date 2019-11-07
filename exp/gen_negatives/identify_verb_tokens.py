@@ -80,6 +80,15 @@ def group_token_ids(token_ids,tokens):
     return grouped_ids
 
 
+def ignore_words_from_pos(pos_tags,words_to_ignore):
+    for i in range(len(pos_tags)):
+        word, tag = pos_tags[i]
+        if word in words_to_ignore:
+            pos_tags[i] = (word,'IG')
+        
+    return pos_tags
+
+
 @click.command()
 @click.option(
     '--subset',
@@ -96,20 +105,36 @@ def main(**kwargs):
     verb_token_ids = [None]*len(annos)
     verb_vocab = set()
     num_human_captions = 0
+    num_verb_captions = 0
     for i,anno in enumerate(tqdm(annos)):
         image_id = anno['image_id']
         cap_id = anno['id']
         caption = anno['caption']
         token_ids, tokens = cap_encoder.tokenize(caption)
+        
         nltk_tokens = nltk.word_tokenize(caption.lower())
         pos_tags = nltk.pos_tag(nltk_tokens)
+        pos_tags = ignore_words_from_pos(
+            pos_tags,['is','has','have','had','be'])
+        
         alignment = align_pos_tokens(pos_tags,tokens)
         verb_token_ids_, verb_words = get_verb_token_ids(pos_tags,alignment)
         verb_token_ids_ = group_token_ids(verb_token_ids_,tokens)
+        if len(verb_token_ids_) > 0:
+            num_verb_captions += 1
+        
+        # if 'has' in tokens:
+        #     print(pos_tags)
+        #     print(tokens)
+        #     print(verb_token_ids_)
+        #     print(verb_words)
+        #     import pdb; pdb.set_trace()
+        
         verb_token_ids[i] = {
             'image_id': image_id,
             'cap_id': cap_id,
-            'token_ids': verb_token_ids_}
+            'token_ids': verb_token_ids_,
+            'words': list(verb_words)}
         
         verb_vocab.update(verb_words)
         
@@ -122,6 +147,7 @@ def main(**kwargs):
     io.dump_json_object(verb_token_ids,data_const.verb_tokens_json)
     io.dump_json_object(sorted(list(verb_vocab)),data_const.verb_vocab_json)
     print('Number of human captions:',num_human_captions)
+    print('Number of verb captions:',num_verb_captions)
     print('Total number of captions:',len(annos))
     print('Size of verb vocabulary:',len(verb_vocab))
 
