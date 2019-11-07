@@ -1,65 +1,228 @@
+import os
 import torch
 import copy
+from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
 
+from global_constants import coco_paths
+import utils.io as io
+from utils.html_writer import HtmlWriter
 from .dataset import DetFeatDatasetConstants, DetFeatDataset
 from .models.cap_encoder import CapEncoderConstants, CapEncoder
 
 
-def replace_tokens(token_ids,ids_to_repl,val):
+def replace_tokens(token_ids,ids_to_repl,repl_val):
     token_ids = copy.deepcopy(token_ids)
     B = len(ids_to_repl)
     for i in range(B):
         for j in ids_to_repl[i]:
-            token_ids[i][j] = val
+            token_ids[i][j] = repl_val
         
     return token_ids
 
-model_const = CapEncoderConstants()
-model_const.model = 'BertForPreTraining'
-cap_encoder = CapEncoder(model_const)
 
-const = DetFeatDatasetConstants('val')
-const.read_noun_tokens = True
-dataset = DetFeatDataset(const)
-print(len(dataset))
-collate_fn = dataset.get_collate_fn()
-dataloader = DataLoader(dataset,5,num_workers=3,collate_fn=collate_fn)
+def insert_word(tokens, verb_token_ids, word):
+    new_tokens = None
+    verb_idx = -1
+    if len(verb_token_ids)==0:
+        new_tokens = tokens
+    else:
+        i = verb_token_ids[0]
+        j = verb_token_ids[-1]
+        new_tokens = tokens[:i] + [word] + tokens[j+1:]
+        verb_idx = i
 
-K = 10
+    return new_tokens, verb_idx
 
-for data in dataloader:
-    verb_token_ids = data['verb_token_ids']
-    token_ids_, tokens, token_lens = cap_encoder.tokenize_batch(data['caption'])
-    mask_token_ids_ = replace_tokens(
-        token_ids_,verb_token_ids,cap_encoder.mask_token_id)
-    token_ids = torch.LongTensor(token_ids_)
-    mask_token_ids = torch.LongTensor(mask_token_ids_)
-    
-    predictions = cap_encoder.model(token_ids)[0].softmax(-1)
-    mask_predictions = cap_encoder.model(mask_token_ids)[0].softmax(-1)
-    
-    max_ids = torch.topk(predictions,K,2)[1].detach().numpy()
-    mask_max_ids = torch.topk(mask_predictions,K,2)[1].detach().numpy()
-    B,L,K = max_ids.shape
-    for i in range(B):
-        if len(verb_token_ids[i])==0:
+
+def tokens_to_sentence(tokens):
+    clean_tokens = []
+    for token in tokens:
+        if token in ['[CLS]','[SEP]','[PAD]']:
             continue
 
-        j = verb_token_ids[i][0]
-        preds = []
-        mask_preds = []
-        for k in range(K):
-            preds.append(
-                (cap_encoder.tokenizer._convert_id_to_token(max_ids[i][j][k]),
-                round(predictions[i][j][max_ids[i][j][k]].item(),3)))
-            mask_preds.append(
-                (cap_encoder.tokenizer._convert_id_to_token(mask_max_ids[i][j][k]),
-                round(mask_predictions[i][j][mask_max_ids[i][j][k]].item(),3)))
-        print('Token replaced',tokens[i][j])
-        print('Pred:',preds)
-        print('Mask Pred:',mask_preds)
-        print('Tokens:',tokens[i])
-        import pdb; pdb.set_trace()
-        #token_ids = torch.tensor(tokenizer.encode(cap,add_special_tokens=True)).unsqueeze(0)
+        if len(token)>=2 and token[:2]=='##':
+            clean_tokens[-1] += token[2:]
+        elif token in ['.',',']:
+            clean_tokens[-1] += token
+        else:
+            clean_tokens.append(token)
+    
+    return ' '.join(clean_tokens)
+
+
+def remove_pad(tokens):
+    clean_tokens = []
+    for i,token in enumerate(tokens):
+        if token=='[PAD]':
+            continue
+        
+        clean_tokens.append(token)
+    
+    return clean_tokens
+
+        
+def get_id_to_token_converter(cap_encoder):
+    def id_to_token_converter(idx):
+        return cap_encoder.tokenizer._convert_id_to_token(idx)
+    
+    return id_to_token_converter
+
+
+def create_vocab_mask(id_to_token_converter,model_vocab_size,verb_vocab):
+    mask = torch.zeros([1,1,model_vocab_size],dtype=torch.float32)
+    verb_vocab = set(verb_vocab)
+    for i in range(model_vocab_size):
+        token = id_to_token_converter(i)
+        if token in verb_vocab:
+            mask[0,0,i] = 1
+
+    return mask
+
+
+def apply_vocab_mask(logits,vocab_mask):
+    logits = -10000*(1-vocab_mask) + logits
+    prob = logits.softmax(-1)
+    return prob
+
+
+def sort_by_scores(score_preds):
+    return sorted(score_preds,key=lambda x: x[1],reverse=True)
+
+
+def ensemble_prediction(token_ids,cap_encoder,T=5):
+    agg_pred = None
+    for t in range(T):
+        masked_token_ids = cap_encoder.mask_batch(token_ids)
+        pred = cap_encoder.model(masked_token_ids)[0]
+        if agg_pred is None:
+            agg_pred = pred
+        else:
+            agg_pred = agg_pred + pred
+
+    agg_pred = agg_pred / T
+    return agg_pred
+
+
+def main():
+    model_const = CapEncoderConstants()
+    model_const.model = 'BertForPreTraining'
+    cap_encoder = CapEncoder(model_const).cuda()
+    id_to_token_converter = get_id_to_token_converter(cap_encoder)
+
+    const = DetFeatDatasetConstants('val')
+    const.read_noun_tokens = True
+    dataset = DetFeatDataset(const)
+    print(len(dataset))
+    collate_fn = dataset.get_collate_fn()
+    dataloader = DataLoader(dataset,5,num_workers=4,collate_fn=collate_fn)
+
+    verb_vocab = io.load_json_object(const.verb_vocab_json)
+    vocab_mask = create_vocab_mask(
+        id_to_token_converter,
+        cap_encoder.tokenizer.vocab_size,
+        verb_vocab)
+    
+    filename = os.path.join(
+        coco_paths['proc_dir'],
+        'negative_verbs_K_10_val.html')
+    html_writer = HtmlWriter(filename)
+
+    K = 10
+
+    neg_samples = {}
+
+    for it,data in enumerate(tqdm(dataloader)):
+        verb_token_ids = data['verb_token_ids']
+        token_ids_, tokens, token_lens = cap_encoder.tokenize_batch(
+            data['caption'])
+        mask_token_ids_ = replace_tokens(
+            token_ids_,verb_token_ids,cap_encoder.mask_token_id)
+        token_ids = torch.LongTensor(token_ids_)
+        mask_token_ids = torch.LongTensor(mask_token_ids_)
+        
+        predictions = cap_encoder.model(token_ids.cuda())[0].cpu()
+        predictions = apply_vocab_mask(predictions,vocab_mask)
+        
+        mask_predictions = cap_encoder.model(mask_token_ids.cuda())[0].cpu()
+        mask_predictions = apply_vocab_mask(mask_predictions,vocab_mask)
+
+        max_ids = torch.topk(predictions,K,2)[1]
+        mask_max_ids = torch.topk(mask_predictions,K,2)[1]
+
+        true_prob_mask_max_ids = torch.gather(predictions,2,mask_max_ids)
+        lang_prob_mask_max_ids = torch.gather(mask_predictions,2,mask_max_ids)
+        score = lang_prob_mask_max_ids / (true_prob_mask_max_ids+1e-6)
+
+        max_ids = max_ids.detach().numpy()
+        mask_max_ids = mask_max_ids.detach().numpy()
+        
+        B,L,K = max_ids.shape
+        for i in range(B):
+            if len(verb_token_ids[i])==0:
+                continue
+
+            j = verb_token_ids[i][0]
+            preds = []
+            mask_preds = []
+            score_preds = []
+            for k in range(K):
+                preds.append(
+                    (cap_encoder.tokenizer._convert_id_to_token(max_ids[i][j][k]),
+                    round(predictions[i][j][max_ids[i][j][k]].item(),3)))
+                mask_preds.append(
+                    (cap_encoder.tokenizer._convert_id_to_token(mask_max_ids[i][j][k]),
+                    round(mask_predictions[i][j][mask_max_ids[i][j][k]].item(),3)))
+                score_preds.append(
+                    (cap_encoder.tokenizer._convert_id_to_token(mask_max_ids[i][j][k]),
+                    round(score[i][j][k].item(),3)))
+            
+            rerank_preds = sort_by_scores(score_preds)
+
+            if it <= 50:
+                html_writer.add_element({0: '-'*10, 1: '-'*100})
+                html_writer.add_element({0: 'Original', 1: tokens[i]})
+                html_writer.add_element(
+                    {0: 'Token Replaced', 1: tokens[i][j]})
+                html_writer.add_element({0: 'True Pred', 1: preds})
+                html_writer.add_element({0: 'Lang Pred', 1: mask_preds})
+                html_writer.add_element({0: 'Rerank Pred', 1: rerank_preds})
+
+
+            image_id = str(data['image_id'][i].item())
+            cap_id = str(data['cap_id'][i].item())
+
+            if image_id not in neg_samples:
+                neg_samples[image_id] = {}
+
+            if cap_id not in neg_samples[image_id]:
+                neg_samples[image_id][cap_id] = {
+                    'gt': tokens[i],
+                    'negs': {}}
+            
+            for k in range(5):
+                new_tokens,neg_idx = insert_word(
+                    tokens[i],
+                    verb_token_ids[i],
+                    rerank_preds[k][0])
+                new_tokens = remove_pad(new_tokens)
+                str_neg_idx = str(neg_idx)
+                if str_neg_idx not in neg_samples[image_id][cap_id]['negs']:
+                    neg_samples[image_id][cap_id]['negs'][str_neg_idx] = []
+
+                neg_samples[image_id][cap_id]['negs'][str_neg_idx].append(
+                    new_tokens)
+
+    filename = os.path.join(
+        coco_paths['proc_dir'],
+        coco_paths['extracted']['neg_samples'])
+    io.dump_json_object(neg_samples,filename)
+
+    html_writer.close()
+
+
+
+if __name__=='__main__':
+    with torch.no_grad():
+        main()      
