@@ -1,5 +1,5 @@
-Requirements = Machine=="vision-18.cs.illinois.edu"
+Requirements = Machine=="vision-02.cs.illinois.edu"
 #Requirements = TotalCpus/TotalGpus > 3
 Request_gpus = 1
-Request_cpus = 12
+Request_cpus = 5
 Queue
