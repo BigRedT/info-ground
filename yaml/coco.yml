@@ -33,3 +33,4 @@ extracted:
     verb_vocab:
       train: annotations/verb_vocab_train2014.json
       val: annotations/verb_vocab_val2014.json
+  neg_samples: bert_negatives.json
