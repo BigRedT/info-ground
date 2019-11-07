@@ -79,6 +79,13 @@ class CapEncoder(nn.Module,io.WritableToFile):
         
         return padded_list
 
+    def mask_batch(self,token_ids,mask_prob=0.1):
+        B,L = token_ids.size()
+        mask = torch.rand_like(token_ids.float()) < torch.tensor(mask_prob)
+        mask = mask.long()
+        token_ids = (1-mask)*token_ids + mask*torch.tensor(self.mask_token_id)
+        return token_ids
+
     def tokenize_batch(self,captions,pad_tokens=True,max_len=None):
         batch_token_ids = []
         batch_tokens = []
@@ -158,7 +165,6 @@ class CapEncoder(nn.Module,io.WritableToFile):
             noun_noun_att[b,:L,:L] = att
             
         return noun_noun_att
-
 
     def forward(self,batch_token_ids):
         output = self.model(batch_token_ids)
