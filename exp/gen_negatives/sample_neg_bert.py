@@ -1,4 +1,5 @@
 import os
+import click
 import torch
 import copy
 from tqdm import tqdm
@@ -105,13 +106,19 @@ def ensemble_prediction(token_ids,cap_encoder,T=5):
     return agg_pred
 
 
-def main():
+@click.command()
+@click.option(
+    '--subset',
+    type=click.Choice(['train','val','test']),
+    default='coco subset to identify nouns for')
+def main(**kwargs):
     model_const = CapEncoderConstants()
     model_const.model = 'BertForPreTraining'
     cap_encoder = CapEncoder(model_const).cuda()
     id_to_token_converter = get_id_to_token_converter(cap_encoder)
 
-    const = DetFeatDatasetConstants('val')
+    subset = kwargs['subset']
+    const = DetFeatDatasetConstants(subset)
     const.read_noun_tokens = True
     dataset = DetFeatDataset(const)
     print(len(dataset))
@@ -126,7 +133,7 @@ def main():
     
     filename = os.path.join(
         coco_paths['proc_dir'],
-        'negative_verbs_K_10_val.html')
+        f'vis_bert_negatives_{subset}.html')
     html_writer = HtmlWriter(filename)
 
     K = 10
@@ -216,7 +223,7 @@ def main():
 
     filename = os.path.join(
         coco_paths['proc_dir'],
-        coco_paths['extracted']['neg_samples'])
+        coco_paths['extracted']['negatives']['samples'][subset])
     io.dump_json_object(neg_samples,filename)
 
     html_writer.close()
