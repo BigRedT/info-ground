@@ -123,7 +123,7 @@ def main(**kwargs):
     dataset = DetFeatDataset(const)
     print(len(dataset))
     collate_fn = dataset.get_collate_fn()
-    dataloader = DataLoader(dataset,5,num_workers=4,collate_fn=collate_fn)
+    dataloader = DataLoader(dataset,20,num_workers=10,collate_fn=collate_fn)
 
     verb_vocab = io.load_json_object(const.verb_vocab_json)
     vocab_mask = create_vocab_mask(
