@@ -33,7 +33,7 @@ class DetFeatDatasetConstants(Constants):
         self.noun_verb_tokens_json = os.path.join(
             coco_paths['proc_dir'],
             coco_paths['extracted']['annos']['noun_verb_tokens'][subset])
-        self.read_noun_verb_tokens = False
+        self.read_noun_verb_tokens = True
         self.max_noun_verb_tokens = 6
         self.neg_samples_json = os.path.join(
             coco_paths['proc_dir'],
@@ -41,7 +41,7 @@ class DetFeatDatasetConstants(Constants):
         self.neg_samples_h5py = os.path.join(
             coco_paths['proc_dir'],
             coco_paths['extracted']['negatives']['feats'][subset])
-        self.read_neg_samples = False
+        self.read_neg_samples = True
         self.num_neg_verbs = 5
         self.neg_verb_feat_dim = 768
 
@@ -50,13 +50,14 @@ class DetFeatDataset(Dataset):
     def __init__(self,const):
         self.const = deepcopy(const)
         self.annos = io.load_json_object(self.const.annos_json)
+        
         if self.const.read_noun_verb_tokens is True:
             self.noun_verb_token_ids = io.load_json_object(
                 self.const.noun_verb_tokens_json)
+        
         if self.const.read_neg_samples is True:
             self.neg_samples = io.load_json_object(self.const.neg_samples_json)
-            self.neg_samples_feats = io.load_h5py_object(
-                self.const.neg_samples_h5py)
+
         os.environ['HDF5_USE_FILE_LOCKING']="FALSE"
         
     def get_image_name(self,subset,image_id):
@@ -114,7 +115,9 @@ class DetFeatDataset(Dataset):
     def get_neg_samples_feats(self,image_id,cap_id,verb_id=None):
         str_image_id = str(image_id)
         str_cap_id = str(cap_id)
-        if str_cap_id in self.neg_samples[str_image_id]:
+        
+        if (str_image_id in self.neg_samples) and \
+            (str_cap_id in self.neg_samples[str_image_id]):
             negs = self.neg_samples[str_image_id][str_cap_id]['negs']
         else:
             feats = np.zeros(
@@ -127,8 +130,11 @@ class DetFeatDataset(Dataset):
             str_verb_id = random.choice(list(negs.keys()))
             verb_id = int(str_verb_id)
         
+        neg_samples_feats = io.load_h5py_object(self.const.neg_samples_h5py)
         feat_name = f'{str_image_id}_{str_cap_id}_{str_verb_id}'
-        feats = self.neg_samples_feats[feat_name][()].astype(np.float32)
+        feats = neg_samples_feats[feat_name][()].astype(np.float32)
+        neg_samples_feats.close()
+
         return feats, verb_id
 
     def __getitem__(self, i):
@@ -188,7 +194,7 @@ if __name__=='__main__':
     print(len(dataset))
     dataloader = DataLoader(
         dataset,
-        3,
+        50,
         num_workers=0,
         collate_fn=dataset.get_collate_fn())
     for data in dataloader:

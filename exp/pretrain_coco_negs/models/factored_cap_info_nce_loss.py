@@ -68,6 +68,65 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
         
         return loss, att, att_V_o
 
+    def att_V_o(self,o,u,w):
+        """
+        Input:
+        :o: BoxToxDo contextualized object features
+        :u: BoxToxDu uncontextualized object features
+        :w: BwxTwxDw caption word features
+        """
+        assert(o.size()[:1]==w.size()[:1]), 'Bo==Bw'
+        
+        Bo,To,Do = o.size()
+        _,_,Du = u.size()
+        Bw,Tw,Dw = w.size()
+
+        Ku = self.ku(u)
+        Kw = self.kw(w)
+        
+        D = Kw.size(2)
+
+        Kw = Kw.unsqueeze(1).unsqueeze(3) # Bwx1xTwx1xD
+        Ku = Ku.unsqueeze(1) # Box1xToxD
+        att = torch.sum(Kw*Ku,4,keepdim=True) # BwxBoxTwxTox1
+        att = att / torch.sqrt(torch.tensor(D).float()) # BwxBoxTwxTox1
+        att = F.softmax(att,3)
+        
+        o = o.unsqueeze(1) # Box1xToxDo
+        V_o = self.fo(o) # Box1xToxD
+        att_V_o = torch.sum(att*V_o,3) # BwxBoxTwxD
+
+        return att_V_o
+
+    def att_V_o_for_verbs(self,o,u,w):
+        """
+        Input:
+        :o: BoxToxDo contextualized object features
+        :u: BoxToxDu uncontextualized object features
+        :w: BwxTwxDw caption word features
+        """
+        assert(o.size()[:1]==w.size()[:1]), 'Bo==Bw'
+        
+        Bo,To,Do = o.size()
+        _,_,Du = u.size()
+        Bw,Tw,Dw = w.size()
+
+        Ku = self.ku(u)
+        Kw = self.kw(w)
+        
+        D = Kw.size(2)
+
+        Kw = Kw.unsqueeze(2) # BwxTwx1xD
+        Ku = Ku.unsqueeze(1) # Box1xToxD
+        att = torch.sum(Kw*Ku,3,keepdim=True) # BxTwxTox1
+        att = att / torch.sqrt(torch.tensor(D).float()) # BxTwxTox1
+        att = F.softmax(att,2)
+        
+        o = o.unsqueeze(1) # Box1xToxDo
+        V_o = self.fo(o) # Box1xToxD
+        att_V_o = torch.sum(att*V_o,2) # BxTwxD
+
+        return att_V_o
 
 class KVLayer(nn.Module,io.WritableToFile):
     def __init__(self,d_in,d_out):

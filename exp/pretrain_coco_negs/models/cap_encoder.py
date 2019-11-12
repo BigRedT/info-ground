@@ -112,44 +112,21 @@ class CapEncoder(nn.Module,io.WritableToFile):
         
         return mask
     
-    def select_noun_embed(self,embed,noun_token_ids):
-        B,max_noun_tokens = noun_token_ids.size()
-        D = embed.size(2)
-        noun_embed = torch.zeros([B,max_noun_tokens,D],dtype=torch.float32).cuda()
-        mask = torch.zeros([B,max_noun_tokens],dtype=torch.float32).cuda()
+    def select_embed(self,embed,token_ids):
+        max_tokens = token_ids.size(1)
+        B,T,D = embed.size()
+        token_embed = torch.zeros([B,max_tokens,D],dtype=torch.float32).cuda()
+        mask = torch.zeros([B,max_tokens],dtype=torch.float32).cuda()
         for b in range(B):
-            for j in range(max_noun_tokens):
-                token_id = noun_token_ids[b,j]
-                if token_id == -1:
+            for j in range(max_tokens):
+                token_id = token_ids[b,j]
+                if token_id == -1 or token_id >= T:
                     mask[b,j] = 1
                     continue
                 
-                noun_embed[b,j] = embed[b,token_id]
+                token_embed[b,j] = embed[b,token_id]
         
-        return noun_embed, mask
-
-    def select_noun_att(self,word_word_att,noun_token_ids):
-        B,max_noun_tokens = noun_token_ids.size()
-        noun_noun_att = torch.zeros(
-            [B,max_noun_tokens,max_noun_tokens],dtype=torch.float32).cuda()
-        for b in range(B):
-            L= 0
-            token_ids = noun_token_ids[b]
-            for i in range(max_noun_tokens):
-                if token_ids[i] == -1:
-                    break
-                else:
-                    L+=1
-            
-            if L==0:
-                continue
-
-            idx = token_ids[:L].long()
-            att = word_word_att[b,idx]
-            att = att[:,idx]
-            noun_noun_att[b,:L,:L] = att
-            
-        return noun_noun_att
+        return token_embed, mask
 
 
     def forward(self,batch_token_ids):
