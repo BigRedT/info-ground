@@ -20,8 +20,9 @@ def compute_neg_verb_loss(
     """
     B,Np1,Dw = verb_feats.size()
     Vw = f_layer(verb_feats.view(-1,Dw)).view(B,Np1,-1) # Bx(N+1)xD
-    Vw = Vw.detach() # We want gradient only for attended object representation
+    #Vw = Vw.detach() # We want gradient only for attended object representation
     
+    #att_V_o_ = att_V_o[:,0].unsqueeze(1) # Bx1xD
     logits = torch.sum(att_V_o*Vw,2) # Bx(N+1)
     log_softmax = F.log_softmax(logits,1)
     log_softmax = valid_verb_mask*log_softmax

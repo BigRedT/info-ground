@@ -62,8 +62,7 @@ def eval_model(model,dataloader,exp_const):
         pad_mask = data['pad_mask'].cuda()
         context_object_features = model.object_encoder(
             object_features)
-            
-
+        
         token_ids, tokens, token_lens = model.cap_encoder.tokenize_batch(
             data['caption'])
         token_ids = torch.LongTensor(token_ids).cuda()
