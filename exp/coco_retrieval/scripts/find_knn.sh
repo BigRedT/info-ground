@@ -1,4 +1,4 @@
-EXP_DIR="/home/tgupta6/Code/context-regions/symlinks/rsaas/coco_exp/lca_lang_sup_gumbel_0.5_finetune"
+EXP_DIR="/home/tgupta6/Code/context-regions/symlinks/rsaas/coco_exp/bert_negs_lang_loss_1_neg_loss_1_wo_detach"
 PROC_DIR="/home/tgupta6/Code/context-regions/symlinks/rsaas/coco_proc"
 SUBSET="val"
 python -m exp.coco_retrieval.find_knn \

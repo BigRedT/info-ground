@@ -1,4 +1,4 @@
-EXP_DIR="${PWD}/symlinks/rsaas/coco_exp/lca_lang_sup_gumbel_0.5_finetune"
+EXP_DIR="${PWD}/symlinks/rsaas/coco_exp/bert_negs_lang_loss_1_neg_loss_1_wo_detach"
 KNN_JSON="${EXP_DIR}/knn_context_features_val_best.json"
 python -m exp.coco_retrieval.compare_captions \
     --knn_json $KNN_JSON \
