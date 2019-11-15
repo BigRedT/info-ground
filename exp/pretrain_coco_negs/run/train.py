@@ -33,6 +33,21 @@ from ..train import main as train
     default=200,
     type=int,
     help='Training batch size')
+@click.option(
+    '--neg_verb_loss_wt',
+    default=1.0,
+    type=float,
+    help='Weight for negative verb loss')
+@click.option(
+    '--self_sup_loss_wt',
+    default=0.0,
+    type=float,
+    help='Weight for self supervision loss')
+@click.option(
+    '--lang_sup_loss_wt',
+    default=1.0,
+    type=float,
+    help='Weight for language supervision loss')
 def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.log_dir = os.path.join(exp_const.exp_dir,'logs')
@@ -50,7 +65,10 @@ def main(**kwargs):
     exp_const.val_batch_size = 20
     exp_const.num_workers = 10
     exp_const.seed = 0
-
+    exp_const.neg_verb_loss_wt = kwargs['neg_verb_loss_wt']
+    exp_const.self_sup_loss_wt = kwargs['self_sup_loss_wt']
+    exp_const.lang_sup_loss_wt = kwargs['lang_sup_loss_wt']
+    
     data_const = {
         'train': DetFeatDatasetConstants('train'),
         'val': DetFeatDatasetConstants('val'),

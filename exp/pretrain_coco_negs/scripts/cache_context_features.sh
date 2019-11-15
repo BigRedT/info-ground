@@ -1,4 +1,4 @@
-EXP_NAME="bert_negs_lang_loss_1_neg_loss_1_wo_detach"
+EXP_NAME="bert_negs_lang_loss_1_neg_loss_1_wo_detach_no_cheat"
 COCO_EXP="/shared/rsaas/tgupta6/Data/context-regions/coco_exp"
 COCO_PROC="/data/tgupta6/context-regions/coco_proc"
 python -m exp.pretrain_coco_negs.run.cache_context_features \

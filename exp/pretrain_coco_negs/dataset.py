@@ -42,7 +42,7 @@ class DetFeatDatasetConstants(Constants):
             coco_paths['proc_dir'],
             coco_paths['extracted']['negatives']['feats'][subset])
         self.read_neg_samples = True
-        self.num_neg_verbs = 5
+        self.num_neg_verbs = 25
         self.neg_verb_feat_dim = 768
 
 
@@ -121,7 +121,7 @@ class DetFeatDataset(Dataset):
             negs = self.neg_samples[str_image_id][str_cap_id]['negs']
         else:
             feats = np.zeros(
-                [self.const.num_neg_verbs,self.const.neg_verb_feat_dim],
+                [1+self.const.num_neg_verbs,self.const.neg_verb_feat_dim],
                 dtype=np.float32)
             verb_id = -1
             return feats, verb_id

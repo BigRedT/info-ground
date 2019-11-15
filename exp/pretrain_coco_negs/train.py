@@ -117,8 +117,10 @@ def train_model(model,dataloaders,exp_const,tb_writer):
             #     object_features,
             #     verb_features.detach())
 
-            neg_verb_feats = data['neg_verb_feats'].cuda()
-            verb_feats = torch.cat((pos_verb_feats,neg_verb_feats),1) # Bx(N+1)xDw
+            # neg_verb_feats = data['neg_verb_feats'].cuda()
+            # verb_feats = torch.cat((pos_verb_feats,neg_verb_feats),1) # Bx(N+1)xDw
+
+            verb_feats = data['neg_verb_feats'].cuda()
 
             att_V_o = model.lang_sup_criterion.att_V_o_for_verbs(
                 context_object_features,
@@ -139,7 +141,9 @@ def train_model(model,dataloaders,exp_const,tb_writer):
             #     token_features,
             #     model.lang_sup_criterion.fw.f_layer)
 
-            loss = 0*self_sup_loss + lang_sup_loss + neg_verb_loss
+            loss = exp_const.self_sup_loss_wt*self_sup_loss + \
+                exp_const.lang_sup_loss_wt*lang_sup_loss + \
+                exp_const.neg_verb_loss_wt*neg_verb_loss
 
             # Backward pass
             opt.zero_grad()
@@ -276,8 +280,10 @@ def eval_model(model,dataloader,exp_const,step):
             word_features,
             token_mask)
 
-        neg_verb_feats = data['neg_verb_feats'].cuda()
-        verb_feats = torch.cat((pos_verb_feats,neg_verb_feats),1) # Bx(N+1)xDw
+        # neg_verb_feats = data['neg_verb_feats'].cuda()
+        # verb_feats = torch.cat((pos_verb_feats,neg_verb_feats),1) # Bx(N+1)xDw
+
+        verb_feats = data['neg_verb_feats'].cuda()
 
         att_V_o = model.lang_sup_criterion.att_V_o_for_verbs(
             context_object_features,
@@ -314,7 +320,9 @@ def eval_model(model,dataloader,exp_const,step):
     avg_self_sup_loss = avg_self_sup_loss / num_samples
     avg_lang_sup_loss = avg_lang_sup_loss / num_samples
     avg_neg_verb_loss = avg_neg_verb_loss / num_samples
-    total_loss = 0*avg_self_sup_loss + avg_lang_sup_loss + avg_neg_verb_loss
+    total_loss = exp_const.self_sup_loss_wt*avg_self_sup_loss + \
+        exp_const.lang_sup_loss_wt*avg_lang_sup_loss + \
+        exp_const.neg_verb_loss_wt*avg_neg_verb_loss
 
     eval_results = {
         'self_sup_loss': avg_self_sup_loss, 

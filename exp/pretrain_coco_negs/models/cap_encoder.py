@@ -112,6 +112,7 @@ class CapEncoder(nn.Module,io.WritableToFile):
         
         return mask
     
+    
     def select_embed(self,embed,token_ids):
         max_tokens = token_ids.size(1)
         B,T,D = embed.size()
