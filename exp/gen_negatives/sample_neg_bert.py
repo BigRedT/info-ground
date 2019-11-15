@@ -111,6 +111,16 @@ def ensemble_prediction(token_ids,cap_encoder,T=5):
     '--subset',
     type=click.Choice(['train','val','test']),
     default='coco subset to identify nouns for')
+@click.option(
+    '--rank',
+    type=int,
+    default=10,
+    help='Number of samples to rank')
+@click.option(
+    '--select',
+    type=int,
+    default=5,
+    help='Number of samples to select')
 def main(**kwargs):
     model_const = CapEncoderConstants()
     model_const.model = 'BertForPreTraining'
@@ -136,7 +146,7 @@ def main(**kwargs):
         f'vis_bert_negatives_{subset}.html')
     html_writer = HtmlWriter(filename)
 
-    K = 10
+    K = kwargs['rank']
 
     neg_samples = {}
 
@@ -208,7 +218,7 @@ def main(**kwargs):
                     'gt': tokens[i],
                     'negs': {}}
             
-            for k in range(5):
+            for k in range(kwargs['select']):
                 new_tokens,neg_idx = insert_word(
                     tokens[i],
                     verb_token_ids[i],
