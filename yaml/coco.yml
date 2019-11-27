@@ -27,6 +27,9 @@ extracted:
     noun_tokens:
       train: annotations/noun_tokens_train2014.json
       val: annotations/noun_tokens_val2014.json
+    noun_vocab:
+      train: annotations/noun_vocab_train2014.json
+      val: annotations/noun_vocab_val2014.json
     verb_tokens:
       train: annotations/verb_tokens_train2014.json
       val: annotations/verb_tokens_val2014.json
@@ -43,3 +46,10 @@ extracted:
     feats:
       train: bert_negatives_train2014.h5py
       val: bert_negatives_val2014.h5py
+  noun_negatives:
+    samples:
+      train: bert_noun_negatives_train2014.json
+      val: bert_noun_negatives_val2014.json
+    feats:
+      train: bert_noun_negatives_train2014.h5py
+      val: bert_noun_negatives_val2014.h5py
