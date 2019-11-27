@@ -1,6 +1,6 @@
 export HDF5_USE_FILE_LOCKING=FALSE
 
-EXP_NAME="lca_lang_sup_gumbel_0.5_finetune"
+EXP_NAME="bert_negs_lang_loss_1_neg_noun_loss_1_neg_verb_loss_1"
 HICO_FEAT="/shared/rsaas/tgupta6/Data/no_frills/hico_feat"
 python -m exp.detect_hico.concat_object_context \
     --obj_feat_hdf5 "${HICO_FEAT}/features.hdf5" \
