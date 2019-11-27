@@ -6,7 +6,7 @@ from global_constants import coco_paths
 from ..dataset import DetFeatDatasetConstants
 from ..models.object_encoder import ObjectEncoderConstants
 from ..models.cap_encoder import CapEncoderConstants
-from ..eval_neg_verb_cls import main as verb_cls
+from ..eval_neg_noun_cls import main as noun_cls
 
 
 @click.command()
@@ -32,8 +32,8 @@ def main(**kwargs):
     exp_const.seed = 0
 
     data_const = DetFeatDatasetConstants('val')
-    data_const.read_neg_samples = True
-    data_const.read_neg_noun_samples = False
+    data_const.read_neg_samples = False
+    data_const.read_neg_noun_samples = True
     data_const.read_noun_verb_tokens = True
 
     model_const = Constants()
@@ -58,7 +58,7 @@ def main(**kwargs):
             exp_const.model_dir,
             f'lang_sup_criterion_{model_const.model_num}')
 
-    verb_cls(exp_const,data_const,model_const)
+    noun_cls(exp_const,data_const,model_const)
 
 
 if __name__=='__main__':
