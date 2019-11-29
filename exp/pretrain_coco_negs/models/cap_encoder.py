@@ -145,7 +145,7 @@ if __name__=='__main__':
     const = CapEncoderConstants()
     const.output_attentions = True
     cap_encoder = CapEncoder(const)
-    caps = ['i am here for fun','what are you here for?']
+    caps = ['i am here for fun','what are you here for?','A couple captain married .']
     token_ids, tokens, token_lens = cap_encoder.tokenize_batch(caps)
     token_ids = torch.LongTensor(token_ids)
     output = cap_encoder(token_ids)

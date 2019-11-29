@@ -1,0 +1,9 @@
+downloads_dir: /shared/rsaas/tgupta6/Data/context-regions/flickr30k_downloads
+anno_dir: /shared/rsaas/tgupta6/Data/context-regions/flickr30k_downloads/Annotations
+sent_dir: /shared/rsaas/tgupta6/Data/context-regions/flickr30k_downloads/Sentences
+proc_dir: /shared/rsaas/tgupta6/Data/context-regions/flickr30k_proc
+
+subsets:
+  train: train.txt
+  val: val.txt
+  test: test.txt
