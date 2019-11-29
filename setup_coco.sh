@@ -17,3 +17,4 @@ cp -r "${NFS_DATA}/coco_proc/bert_negatives_train2014.h5py" $COCO_PROC
 cp -r "${NFS_DATA}/coco_proc/bert_negatives_val2014.h5py" $COCO_PROC
 cp -r "${NFS_DATA}/coco_proc/bert_noun_negatives_train2014.h5py" $COCO_PROC
 cp -r "${NFS_DATA}/coco_proc/bert_noun_negatives_val2014.h5py" $COCO_PROC
+
