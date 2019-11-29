@@ -8,4 +8,3 @@ mkdir $FLICKR_IMAGES
 tar -xvf "${NFS_DATA}/flickr30k_downloads/flickr30k-images.tar" -C $FLICKR_IMAGES
 mv $FLICKR_IMAGES/flickr30k-images/* $FLICKR_IMAGES
 rm -rf $FLICKR_IMAGES/flickr30k-images
-
