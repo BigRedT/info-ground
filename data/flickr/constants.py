@@ -7,9 +7,10 @@ from utils.constants import Constants
 
 
 class FlickrConstants(Constants):
+    flickr_paths = deepcopy(flickr_paths)
+    
     def __init__(self,flickr_paths=flickr_paths):
         super().__init__()
-        self.flickr_paths = deepcopy(flickr_paths)
         self.subset_ids = {}
         self.box_json = {}
         self.sent_json = {}
