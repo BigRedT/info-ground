@@ -2,6 +2,7 @@ downloads_dir: /shared/rsaas/tgupta6/Data/context-regions/flickr30k_downloads
 anno_dir: /shared/rsaas/tgupta6/Data/context-regions/flickr30k_downloads/Annotations
 sent_dir: /shared/rsaas/tgupta6/Data/context-regions/flickr30k_downloads/Sentences
 proc_dir: /shared/rsaas/tgupta6/Data/context-regions/flickr30k_proc
+image_dir: /data/tgupta6/context-regions/flickr30k_images
 
 subsets:
   train: train.txt
