@@ -7,6 +7,7 @@ from exp.eval_flickr.dataset import  FlickrDatasetConstants
 from ..models.object_encoder import ObjectEncoderConstants
 from ..models.cap_encoder import CapEncoderConstants
 from .. import eval_flickr_phrase_loc
+from .. import eval_flickr_phrase_loc_wo_obj_encoder
 
 @click.command()
 @click.option(
@@ -22,6 +23,10 @@ from .. import eval_flickr_phrase_loc
     default=-1,
     type=int,
     help='Model number. -1 implies begining of training. -100 means best')
+@click.option(
+    '--wo_obj_enc',
+    is_flag=True,
+    help='Evaluate object detector features')
 def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.model_dir = os.path.join(exp_const.exp_dir,'models')
@@ -51,7 +56,11 @@ def main(**kwargs):
             exp_const.model_dir,
             f'lang_sup_criterion_{model_const.model_num}')
 
-    eval_flickr_phrase_loc.main(exp_const,data_const,model_const)
+    if kwargs['wo_obj_enc']==True:
+        eval_flickr_phrase_loc_wo_obj_encoder.main(
+            exp_const,data_const,model_const)
+    else:
+        eval_flickr_phrase_loc.main(exp_const,data_const,model_const)
 
 
 if __name__=='__main__':
