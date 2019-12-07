@@ -1,0 +1,7 @@
+defscrollback 10000
+escape ^Oo
+# status line at the bottom
+hardstatus on
+hardstatus alwayslastline
+hardstatus string "%{.bW}%-w%{.rW}%f%n%t%{-}%+w %=%{..G}[%H%1]%{..Y}%m/%d %c"
+shell "/bin/bash"
