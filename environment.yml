@@ -125,5 +125,5 @@ dependencies:
     - s3transfer==0.2.1
     - sentencepiece==0.1.83
     - urllib3==1.25.3
-prefix: /home/tgupta6/miniconda3/envs/context-regions
+#prefix: /miniconda/envs/context-regions
 
