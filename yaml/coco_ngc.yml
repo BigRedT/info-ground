@@ -1,0 +1,55 @@
+# Locations where downloaded and extracted files would be stored
+downloads_dir: /shared/rsaas/tgupta6/Data/context-regions/coco_downloads
+proc_dir: /shared/rsaas/tgupta6/Data/context-regions/coco_proc
+exp_dir: /shared/rsaas/tgupta6/Data/context-regions/coco_exp
+image_dir: /data/tgupta6/context-regions/coco_images
+local_proc_dir: /data/tgupta6/context-regions/coco_proc
+
+# Urls to download data from
+urls:
+  images:
+    train: http://images.cocodataset.org/zips/train2014.zip
+    val: http://images.cocodataset.org/zips/val2014.zip
+    test: http://images.cocodataset.org/zips/test2014.zip
+  annos: 
+    train_val: http://images.cocodataset.org/annotations/annotations_trainval2014.zip
+
+# Names of dirs/files post extraction
+extracted:
+  images:
+    train: train2014
+    val: val2014
+    test: test2014
+  annos:
+    captions:
+      train: annotations/captions_train2014.json
+      val: annotations/captions_val2014.json
+    noun_tokens:
+      train: annotations/noun_tokens_train2014.json
+      val: annotations/noun_tokens_val2014.json
+    noun_vocab:
+      train: annotations/noun_vocab_train2014.json
+      val: annotations/noun_vocab_val2014.json
+    verb_tokens:
+      train: annotations/verb_tokens_train2014.json
+      val: annotations/verb_tokens_val2014.json
+    verb_vocab:
+      train: annotations/verb_vocab_train2014.json
+      val: annotations/verb_vocab_val2014.json
+    noun_verb_tokens:
+      train: annotations/noun_verb_tokens_train2014.json
+      val: annotations/noun_verb_tokens_val2014.json
+  negatives:
+    samples:
+      train: bert_negatives_train2014.json
+      val: bert_negatives_val2014.json
+    feats:
+      train: bert_negatives_train2014.h5py
+      val: bert_negatives_val2014.h5py
+  noun_negatives:
+    samples:
+      train: bert_noun_negatives_train2014.json
+      val: bert_noun_negatives_val2014.json
+    feats:
+      train: bert_noun_negatives_train2014.h5py
+      val: bert_noun_negatives_val2014.h5py
