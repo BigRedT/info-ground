@@ -1,5 +1,5 @@
 ngc batch run \
-    --instance dgx1v.16g.1.norm \
+    --instance dgx1v.16g.4.norm \
     --name "context-regions" \
     --image "nvcr.io/nvidian/lpr-parasol/context-regions:latest" \
     --result /result \
