@@ -3,7 +3,7 @@ WS_DIR='/Users/tanmay/Data/ngc_workspaces/ws-tanmayg/Code'
 #rsync -av --exclude=".git/" --modify-window=10 $CODE_DIR $WS_DIR
 
 pushd '/Users/tanmay/Code/ngc/'
-zip -r /tmp/code.zip context-regions
+zip -rq /tmp/code.zip context-regions
 rsync -rv /tmp/code.zip $WS_DIR
 rm /tmp/code.zip
 popd
