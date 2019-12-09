@@ -98,6 +98,7 @@ def main(**kwargs):
     print('Creating Caption Encoder (tokenizer) ...')
     cap_encoder = CapEncoder(CapEncoderConstants())
 
+    nltk.download('averaged_perceptron_tagger')
     nltk.download('punkt')
 
     data_const = DetFeatDatasetConstants(kwargs['subset'])
