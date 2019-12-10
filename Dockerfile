@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y \
     htop \
     python3-dev \
     gcc \
-    curl
+    curl \
+    wget
 
 # Install Miniconda
 RUN curl -so /miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
