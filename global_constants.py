@@ -11,6 +11,10 @@ if machine=='htc':
         open('yaml/flickr.yml','r'),
         Loader=yaml.FullLoader)
 
+    hico_paths = yaml.load(
+        open('yaml/hico.yml','r'),
+        Loader=yaml.FullLoader)
+
     misc_paths = yaml.load(
         open('yaml/misc.yml','r'),
         Loader=yaml.FullLoader)
@@ -22,6 +26,10 @@ elif machine=='ngc':
 
     flickr_paths = yaml.load(
         open('yaml/flickr_ngc.yml','r'),
+        Loader=yaml.FullLoader)
+
+    hico_paths = yaml.load(
+        open('yaml/hico_ngc.yml','r'),
         Loader=yaml.FullLoader)
 
     misc_paths = yaml.load(
