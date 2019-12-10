@@ -11,3 +11,4 @@ ngc batch run \
     --port 8000 \
     --port 8001
 
+# --datasetid 47895:/home/workspace/Data/context-regions/hico_downloads
