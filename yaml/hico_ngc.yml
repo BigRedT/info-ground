@@ -3,6 +3,7 @@ proc_dir: /home/workspace/Data/context-regions/hico_proc
 hico_tar_gz: /home/workspace/Data/context-regions/hico_downloads/hico_20150920.tar.gz
 image_dir: /dev/shm/context-regions/hico_images
 local_proc_dir: /dev/shm/context-regions/hico_proc
+detection_dir: /home/workspace/Data/context-regions/hico_proc/detections
 
 # Downloaded annotations
 anno_mat: anno.mat
