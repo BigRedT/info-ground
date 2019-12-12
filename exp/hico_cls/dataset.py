@@ -82,15 +82,16 @@ class HICOFeatDataset(Dataset):
         mask = mask < self.const.mask_prob
         return mask
 
-    def get_pos_neg_labels(self,labels):
+    def get_pos_neg_unk_labels(self,labels):
         pos_labels = (labels==1).astype(np.float32)
         neg_labels = (labels==-1).astype(np.float32)
-        return pos_labels, neg_labels
+        unk_labels = np.isnan(labels).astype(np.float32)
+        return pos_labels, neg_labels, unk_labels
 
     def __getitem__(self, i):
         image_name = self.subset_list[i]
         labels = self.labels[i]
-        pos_labels, neg_labels = self.get_pos_neg_labels(labels)
+        pos_labels, neg_labels, unk_labels = self.get_pos_neg_unk_labels(labels)
         features = self.read_object_features(image_name)
         num_objects = features.shape[0]
         features, pad_mask = self.pad_object_features(features)
@@ -104,6 +105,7 @@ class HICOFeatDataset(Dataset):
             'pad_mask': pad_mask,
             'pos_labels': pos_labels,
             'neg_labels': neg_labels,
+            'unk_labels': unk_labels,
         }
         return to_return
 

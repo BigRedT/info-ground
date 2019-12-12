@@ -4,7 +4,6 @@ import torch.nn as nn
 
 from context_layer.transformer import ContextLayerConstants, ContextLayer
 import utils.io as io
-from .info_nce_loss import InfoNCE
 
 
 class HOIClassifierConstants(io.JsonSerializableClass):

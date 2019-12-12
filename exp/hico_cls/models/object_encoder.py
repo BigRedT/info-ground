@@ -4,7 +4,6 @@ import torch.nn as nn
 
 from context_layer.transformer import ContextLayerConstants, ContextLayer
 import utils.io as io
-from .info_nce_loss import InfoNCE
 
 
 class ObjectEncoderConstants(io.JsonSerializableClass):
@@ -15,6 +14,7 @@ class ObjectEncoderConstants(io.JsonSerializableClass):
         self.context_layer.num_hidden_layers = 8
         self.context_layer.hidden_size = 768
         self.context_layer.intermediate_size = 768
+        self.skip_context_layer = False
         
 
 class ObjectEncoder(nn.Module,io.WritableToFile):
@@ -59,10 +59,15 @@ class ObjectEncoder(nn.Module,io.WritableToFile):
         B,T,D = object_features.size()
         transformer_input = self.input_layer(
             object_features.view(-1,D)).view(B,T,-1)
-        context_layer_output = self.context_layer(transformer_input)
-        object_context_features = context_layer_output['last_hidden_states']
         
-        attention = context_layer_output['attention']
+        if self.const.skip_context_layer==True:
+            object_context_features = transformer_input
+            attention = None
+        else:
+            context_layer_output = self.context_layer(transformer_input)
+            object_context_features = context_layer_output['last_hidden_states']
+            attention = context_layer_output['attention']
+        
         if attention is not None:
             return object_context_features, attention 
 
