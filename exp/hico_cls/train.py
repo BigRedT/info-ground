@@ -16,7 +16,7 @@ import utils.io as io
 from utils.constants import save_constants, Constants
 from .models.object_encoder import ObjectEncoder
 from .models.hoi_classifier import HOIClassifier
-from .models.bce_loss import BCELoss
+from .models.bce_loss import BCELoss, BalancedBCELoss
 from .dataset import HICOFeatDataset
 from .compute_mAP import compute_mAP_given_neg_labels
 
@@ -38,12 +38,16 @@ def train_model(model,dataloaders,exp_const,tb_writer):
     else:
         assert(False), 'optimizer not implemented'
 
+    scheduler = optim.lr_scheduler.StepLR(opt,step_size=20,gamma=0.1)
+
     if model.const.model_num==-1:
         step = 0
+        best_val_mAP = 0
     else:
         step = model.const.model_num
+        best_val_mAP = exp_const.best_val_mAP
 
-    best_mAP = 0
+    
     for epoch in range(exp_const.num_epochs):
         for it,data in enumerate(dataloaders['train']):
             # Set mode
@@ -59,8 +63,12 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                 object_mask,
                 pad_mask)
 
-            if exp_const.finetune_object_encoder==False:
+            if exp_const.finetune_object_encoder==False or \
+                (exp_const.warmup==True and epoch < 20):
                 context_object_features = context_object_features.detach()
+            
+            context_object_features = torch.cat((
+                object_features,context_object_features),2)
 
             hoi_logits, hoi_context_object_features = \
                 model.hoi_classifier(
@@ -72,10 +80,16 @@ def train_model(model,dataloaders,exp_const,tb_writer):
             pos_labels = data['pos_labels'].cuda()
             neg_labels = data['neg_labels'].cuda()
             unk_labels = data['unk_labels'].cuda()
+            
+            if exp_const.ignore_unk_labels_during_training==True:
+                train_neg_labels = neg_labels
+            else:
+                train_neg_labels = neg_labels+unk_labels
+            
             bce_loss = model.bce_criterion(
                 hoi_logits,
                 pos_labels,
-                neg_labels+unk_labels)
+                train_neg_labels)
             
             loss = bce_loss
 
@@ -115,7 +129,7 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                         'state_dict': nn_model.state_dict(),
                         'step': step,
                         'val_mAP': None,
-                        'prev_best_val_mAP': best_mAP},
+                        'prev_best_val_mAP': best_val_mAP},
                         model_path)
 
             if step%exp_const.val_step==0:
@@ -139,8 +153,8 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                 for name,value in log_items.items():
                     tb_writer.add_scalar(name,value,step)
 
-                mAP = eval_results['mAP']
-                if mAP > best_mAP:                    
+                val_mAP = eval_results['mAP']
+                if val_mAP > best_val_mAP:                    
                     print(f'Saving best model at {step} ...')
                     save_items = {
                         'best_object_encoder': model.object_encoder,
@@ -154,13 +168,15 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                         torch.save({
                             'state_dict':nn_model.state_dict(),
                             'step': step,
-                            'mAP': mAP,
-                            'prev_best_mAP': best_mAP},
+                            'val_mAP': val_mAP,
+                            'prev_best_val_mAP': best_val_mAP},
                             model_path)
 
-                    best_mAP = mAP
+                    best_val_mAP = val_mAP
 
             step += 1
+
+        scheduler.step()
 
 
 def eval_model(model,dataloader,exp_const,step):
@@ -188,6 +204,9 @@ def eval_model(model,dataloader,exp_const,step):
             object_mask,
             pad_mask)
             
+        context_object_features = torch.cat((
+            object_features,context_object_features),2)
+
         hoi_logits, hoi_context_object_features = \
             model.hoi_classifier(
                 context_object_features,
@@ -261,7 +280,10 @@ def main(exp_const,data_const,model_const):
     model.const = model_const
     model.object_encoder = ObjectEncoder(model.const.object_encoder)
     model.hoi_classifier = HOIClassifier(model.const.hoi_classifier)
-    model.bce_criterion = BCELoss()
+    if exp_const.balanced_bce==True:
+        model.bce_criterion = BalancedBCELoss()
+    else:
+        model.bce_criterion = BCELoss()
     if exp_const.pretrained_object_encoder_path!='unavailable':
         print('Loading a pretrained object encoder ...')
         model.object_encoder.load_state_dict(
@@ -269,10 +291,18 @@ def main(exp_const,data_const,model_const):
     
     if model.const.model_num != -1:
         print('Loading a specified model number ...')
+        loaded_model = torch.load(exp_const.pretrained_object_encoder_path)
         model.object_encoder.load_state_dict(
-            torch.load(model.const.object_encoder_path)['state_dict'])
+            loaded_model['state_dict'])
         model.hoi_classifier.load_state_dict(
             torch.load(model.const.hoi_classifier_path)['state_dict'])
+        
+        val_mAP = loaded_model['val_mAP']
+        prev_best_val_mAP = loaded_model['prev_best_val_mAP']
+        if val_mAP is None:
+            exp_const.best_val_mAP = prev_best_val_mAP
+        else:
+            exp_const.best_val_mAP = max(val_mAP,prev_best_val_mAP)
         
     model.object_encoder.cuda()
     model.hoi_classifier.cuda()

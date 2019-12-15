@@ -7,39 +7,43 @@ EXP=$1
 if [ "$EXP" == 'det' ]
 then
     python -m exp.hico_cls.run.train \
-        --exp_name 'det' \
+        --exp_name 'det_balanced_bce' \
         --model_num -1 \
         --lr 1e-4 \
         --train_batch_size 100 \
         --finetune_object_encoder \
-        --skip_object_context_layer
+        --skip_object_context_layer \
+        --balanced_bce
 
 elif [ "$EXP" == 'context_det_scratch' ]
 then
     python -m exp.hico_cls.run.train \
-        --exp_name 'context_det_scratch' \
+        --exp_name 'context_det_scratch_balanced_bce' \
         --model_num -1 \
         --lr 1e-4 \
         --train_batch_size 100 \
-        --finetune_object_encoder
+        --finetune_object_encoder \
+        --balanced_bce
 
 elif [ "$EXP" == 'context_det_frozen' ]
 then
     python -m exp.hico_cls.run.train \
-        --exp_name 'context_det_frozen' \
+        --exp_name 'context_det_frozen_balanced_bce' \
         --model_num -1 \
         --lr 1e-4 \
         --train_batch_size 100 \
-        --pretrained_object_encoder_path $pretrained_object_encoder_path
+        --pretrained_object_encoder_path $pretrained_object_encoder_path \
+        --balanced_bce
 
 elif [ "$EXP" == 'context_det_finetune' ]
 then
     python -m exp.hico_cls.run.train \
-        --exp_name 'context_det_finetune' \
+        --exp_name 'context_det_finetune_balanced_bce' \
         --model_num -1 \
         --lr 1e-4 \
         --train_batch_size 100 \
         --finetune_object_encoder \
         --warmup \
-        --pretrained_object_encoder_path $pretrained_object_encoder_path
+        --pretrained_object_encoder_path $pretrained_object_encoder_path \
+        --balanced_bce
 fi

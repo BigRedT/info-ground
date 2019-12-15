@@ -45,6 +45,18 @@ from ..train import main as train
     '--pretrained_object_encoder_path',
     default='unavailable',
     help='Set to the path of the pretrained encoder')
+@click.option(
+    '--warmup',
+    is_flag=True,
+    help='Would freeze the context layers for warmup (first 20 epochs)')
+@click.option(
+    '--ignore_unk_labels_during_training',
+    is_flag=True,
+    help='Set flag to only train on positive and negative labels')
+@click.option(
+    '--balanced_bce',
+    is_flag=True,
+    help='Set flag to train using a balanced BCE loss')
 def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.log_dir = os.path.join(exp_const.exp_dir,'logs')
@@ -53,7 +65,7 @@ def main(**kwargs):
     exp_const.optimizer = 'Adam'
     exp_const.lr = kwargs['lr']
     exp_const.momentum = None
-    exp_const.num_epochs = 20
+    exp_const.num_epochs = 50
     exp_const.log_step = 20
     exp_const.model_save_step = 1000 # 30000/50
     exp_const.val_step = 1000
@@ -66,6 +78,10 @@ def main(**kwargs):
     exp_const.skip_object_context_layer = kwargs['skip_object_context_layer']
     exp_const.pretrained_object_encoder_path = \
         kwargs['pretrained_object_encoder_path']
+    exp_const.warmup = kwargs['warmup']
+    exp_const.ignore_unk_labels_during_training = \
+        kwargs['ignore_unk_labels_during_training']
+    exp_const.balanced_bce = kwargs['balanced_bce']
     
     data_const = {
         'train': HICOFeatDatasetConstants('train'),

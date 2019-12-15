@@ -9,7 +9,7 @@ import utils.io as io
 class HOIClassifierConstants(io.JsonSerializableClass):
     def __init__(self):
         super().__init__()
-        self.object_feature_dim = 768
+        self.object_feature_dim = 768 + 1024
         self.context_layer = ContextLayerConstants()
         self.context_layer.num_hidden_layers = 3
         self.context_layer.hidden_size = 768
@@ -30,12 +30,12 @@ class HOIClassifier(nn.Module,io.WritableToFile):
         super().__init__()
         self.const = copy.deepcopy(const)
         self.input_layer = Identity()
-        # self.input_layer = nn.Sequential(
-        #     nn.Linear(
-        #         self.const.object_feature_dim,
-        #         self.const.context_layer.hidden_size),
-        #     nn.BatchNorm1d(self.const.context_layer.hidden_size),
-        #     nn.ReLU())
+        self.input_layer = nn.Sequential(
+            nn.Linear(
+                self.const.object_feature_dim,
+                self.const.context_layer.hidden_size),
+            nn.BatchNorm1d(self.const.context_layer.hidden_size),
+            nn.ReLU())
         self.context_layer = ContextLayer(self.const.context_layer)
         self.cls_layer = nn.Linear(
             self.const.context_layer.hidden_size,

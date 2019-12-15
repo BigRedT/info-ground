@@ -26,6 +26,8 @@ def eval_model(model,dataloader,exp_const):
     model.object_encoder.eval()
     model.hoi_classifier.eval()
 
+    sigmoid_layer = nn.Sigmoid()
+
     avg_bce_loss = 0
     num_samples = 0
     list_of_pos_labels = []
@@ -41,12 +43,16 @@ def eval_model(model,dataloader,exp_const):
             object_features,
             object_mask,
             pad_mask)
+
+        context_object_features = torch.cat((
+            object_features,context_object_features),2)
             
         hoi_logits, hoi_context_object_features = \
             model.hoi_classifier(
                 context_object_features,
                 object_mask,
                 pad_mask)
+        hoi_probs = sigmoid_layer(hoi_logits)
                 
         # Compute HOI loss
         pos_labels = data['pos_labels'].cuda()
@@ -57,7 +63,7 @@ def eval_model(model,dataloader,exp_const):
         list_of_pos_labels.append(pos_labels.detach().cpu().numpy())
         list_of_neg_labels.append(neg_labels.detach().cpu().numpy())
         list_of_unk_labels.append(unk_labels.detach().cpu().numpy())
-        list_of_pred.append(hoi_logits.detach().cpu().numpy())
+        list_of_pred.append(hoi_probs.detach().cpu().numpy())
 
         # Aggregate loss or accuracy
         batch_size = object_features.size(0)
@@ -74,6 +80,12 @@ def eval_model(model,dataloader,exp_const):
     # mAP, APs = compute_mAP(
     #     y_true=all_pos_labels,
     #     y_score=all_pred)
+
+    subset = dataloader.dataset.const.subset
+    np.save(os.path.join(exp_const.exp_dir,f'prob_{subset}.npy'),all_pred)
+    np.save(
+        os.path.join(exp_const.exp_dir,f'pos_labels_{subset}.npy'),
+        all_pos_labels)
 
     mAP, APs = compute_mAP_given_neg_labels(
         y_true=all_pos_labels,
