@@ -11,7 +11,7 @@ class HOIClassifierConstants(io.JsonSerializableClass):
         super().__init__()
         self.object_feature_dim = 768 + 1024
         self.context_layer = ContextLayerConstants()
-        self.context_layer.num_hidden_layers = 3
+        self.context_layer.num_hidden_layers = 6
         self.context_layer.hidden_size = 768
         self.context_layer.intermediate_size = 768
         self.num_hois = 600
@@ -90,7 +90,11 @@ class HOIClassifier(nn.Module,io.WritableToFile):
         object_context_features = context_layer_output['last_hidden_states']
         
         # Classify the output at T=0 position
-        hoi_logits = self.cls_layer(object_context_features[:,0,:])
+        #hoi_logits = self.cls_layer(object_context_features[:,0,:])
+        #import pdb; pdb.set_trace()
+        hoi_logits = self.cls_layer(
+            object_context_features[:,1:,:].reshape(B*T,-1)).reshape(B,T,-1)
+        hoi_logits = torch.max(hoi_logits,1)[0]
 
         attention = context_layer_output['attention']
         if attention is not None:
