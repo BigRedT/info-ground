@@ -7,7 +7,7 @@ EXP=$1
 if [ "$EXP" == 'det' ]
 then
     python -m exp.hico_cls.run.train \
-        --exp_name 'det' \
+        --exp_name 'det_max_6_layer' \
         --model_num -1 \
         --lr 1e-4 \
         --train_batch_size 100 \
@@ -17,7 +17,7 @@ then
 elif [ "$EXP" == 'context_det_scratch' ]
 then
     python -m exp.hico_cls.run.train \
-        --exp_name 'context_det_scratch' \
+        --exp_name 'context_det_scratch_max_6_layer' \
         --model_num -1 \
         --lr 1e-4 \
         --train_batch_size 100 \
@@ -26,7 +26,7 @@ then
 elif [ "$EXP" == 'context_det_frozen' ]
 then
     python -m exp.hico_cls.run.train \
-        --exp_name 'context_det_frozen' \
+        --exp_name 'context_det_frozen_max_6_layer' \
         --model_num -1 \
         --lr 1e-4 \
         --train_batch_size 100 \
@@ -35,7 +35,7 @@ then
 elif [ "$EXP" == 'context_det_finetune' ]
 then
     python -m exp.hico_cls.run.train \
-        --exp_name 'context_det_finetune' \
+        --exp_name 'context_det_finetune_max_6_layer' \
         --model_num -1 \
         --lr 1e-4 \
         --train_batch_size 100 \
