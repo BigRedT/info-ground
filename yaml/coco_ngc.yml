@@ -53,3 +53,10 @@ extracted:
     feats:
       train: bert_noun_negatives_train2014.h5py
       val: bert_noun_negatives_val2014.h5py
+  noun_feats:
+    feats:
+      train: bert_noun_feats_train2014.h5py
+      val: bert_noun_feats_val2014.h5py
+    feat_info:
+      train: bert_noun_feats_train2014.json
+      val: bert_noun_feats_val2014.json
