@@ -4,6 +4,6 @@
     "sync-rsync.delete": true,
     "sync-rsync.onSave": false,
     "sync-rsync.onSaveIndividual": true,
-    "python.pythonPath": "/usr/local/bin/python3",
+    "python.pythonPath": "/home/tgupta6/miniconda3/envs/context-regions/bin/python",
     "python.linting.enabled": false,
 }
