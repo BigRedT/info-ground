@@ -11,7 +11,7 @@ def vis_bbox(bbox,img,color=(255,0,0),modify=False,alpha=0.2):
     r = [y1,y1,y2,y2]
     c = [x1,x2,x2,x1]
 
-    if modify:
+    if modify==True:
         img_ = img
     else:
         img_ = np.copy(img)
