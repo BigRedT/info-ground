@@ -18,19 +18,23 @@ COCO_INSTANCE_CATEGORY_NAMES = [
     'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
 ]
 
-def create_detector(dataset='coco',extractor=False):
+def create_detector(dataset='coco',extractor=False,num_classes=91):
     if dataset in ['coco','default']:
         print('COCO/Default configuration for detector')
         if extractor==True:
-            model = fasterrcnn_resnet50_fpn_extractor(pretrained=True)
+            model = fasterrcnn_resnet50_fpn_extractor(
+                pretrained=True,
+                num_classes=num_classes)
         else:
             model = fasterrcnn_resnet50_fpn(pretrained=True)
+
     elif dataset=='hico':
         print('HICO configuration for detector')
         model = fasterrcnn_resnet50_fpn(
             pretrained=True,
             box_nms_thresh=0.3,
             box_score_thresh=0.01)
+
     else:
         assert(False),'Dataset not implemented'
 
@@ -41,12 +45,12 @@ if __name__=='__main__':
     import torch
     imgs = [
         torch.rand([3,224,224]).cuda(),
-        torch.rand([3,224,224]).cuda()
+        torch.rand([3,300,224]).cuda()
         ]
     props = [
         torch.FloatTensor([[10,20,60,80]]).cuda(),
         torch.FloatTensor([[10,20,60,80],[10,20,60,80]]).cuda()
         ]
-    model = create_detector(extractor=True).cuda()
+    model = create_detector(extractor=True,num_classes=100).cuda()
     logits, feats = model(imgs, props)
     import pdb; pdb.set_trace()
