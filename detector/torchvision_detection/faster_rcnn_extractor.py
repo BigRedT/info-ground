@@ -14,6 +14,7 @@ from .rpn import AnchorGenerator, RPNHead, RegionProposalNetwork
 from .roi_heads import RoIHeads
 from .transform import GeneralizedRCNNTransform
 from .backbone_utils import resnet_fpn_backbone
+from utils.io import WritableToFile
 
 
 __all__ = [
@@ -21,7 +22,7 @@ __all__ = [
 ]
 
 
-class FasterRCNN(GeneralizedRCNN):
+class FasterRCNN(GeneralizedRCNN,WritableToFile):
     """
     Implements Faster R-CNN.
 
@@ -252,7 +253,9 @@ class FasterRCNN(GeneralizedRCNN):
             features = OrderedDict([(0, features)])
         box_features = self.roi_heads.box_roi_pool(features, proposals, images.image_sizes)
         box_features = self.roi_heads.box_head(box_features)
-        class_logits, _ = self.roi_heads.box_predictor(box_features)
+        box_features = box_features.detach()
+        class_logits = self.roi_heads.box_predictor(box_features)
+        #class_logits, _ = self.roi_heads.box_predictor(box_features)
         
         box_features = self.split_per_image(box_features,proposals)
         class_logits = self.split_per_image(class_logits,proposals)
@@ -306,16 +309,16 @@ class FastRCNNPredictor(nn.Module):
     def __init__(self, in_channels, num_classes):
         super(FastRCNNPredictor, self).__init__()
         self.cls_score = nn.Linear(in_channels, num_classes)
-        self.bbox_pred = nn.Linear(in_channels, num_classes * 4)
+        #self.bbox_pred = nn.Linear(in_channels, num_classes * 4)
 
     def forward(self, x):
         if x.ndimension() == 4:
             assert list(x.shape[2:]) == [1, 1]
         x = x.flatten(start_dim=1)
         scores = self.cls_score(x)
-        bbox_deltas = self.bbox_pred(x)
+        #bbox_deltas = self.bbox_pred(x)
 
-        return scores, bbox_deltas
+        return scores#, bbox_deltas
 
 
 model_urls = {
@@ -368,7 +371,21 @@ def fasterrcnn_resnet50_fpn(pretrained=False, progress=True,
     backbone = resnet_fpn_backbone('resnet50', pretrained_backbone)
     model = FasterRCNN(backbone, num_classes, **kwargs)
     if pretrained:
+        model_state_dict = model.state_dict()
         state_dict = load_state_dict_from_url(model_urls['fasterrcnn_resnet50_fpn_coco'],
                                               progress=progress)
+        if num_classes!=91:
+            keys_to_del = [
+                'roi_heads.box_predictor.cls_score.weight', 
+                'roi_heads.box_predictor.cls_score.bias',
+                'roi_heads.box_predictor.bbox_pred.weight',
+                'roi_heads.box_predictor.bbox_pred.bias']
+            for key in keys_to_del:
+                if key in model_state_dict:
+                    state_dict[key] = model_state_dict[key]
+                else:
+                    del state_dict[key]
+
         model.load_state_dict(state_dict)
+
     return model
