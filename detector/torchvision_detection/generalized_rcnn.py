@@ -6,9 +6,10 @@ Implements the Generalized R-CNN framework
 from collections import OrderedDict
 import torch
 from torch import nn
+from utils.io import WritableToFile
 
 
-class GeneralizedRCNN(nn.Module):
+class GeneralizedRCNN(nn.Module,WritableToFile):
     """
     Main class for Generalized R-CNN.
 
