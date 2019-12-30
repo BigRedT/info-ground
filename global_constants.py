@@ -1,6 +1,6 @@
 import yaml
 
-machine='ngc' # {'ngc','htc'}
+machine='htc' # {'ngc','htc'}
 
 if machine=='htc':
     coco_paths = yaml.load(
