@@ -62,6 +62,7 @@ def main(**kwargs):
     cap_encoder = CapEncoder(CapEncoderConstants()).cuda()
     
     print('Create hdf5 file to store features ...')
+    io.mkdir_if_not_exists(coco_paths['local_proc_dir'])
     feat_h5py = os.path.join(
         coco_paths['local_proc_dir'],
         coco_paths['extracted']['noun_feats']['feats'][subset])
