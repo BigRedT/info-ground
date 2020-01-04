@@ -225,6 +225,7 @@ class FasterRCNN(GeneralizedRCNN,WritableToFile):
             bbox_reg_weights,
             box_score_thresh, box_nms_thresh, box_detections_per_img)
 
+
         if image_mean is None:
             image_mean = [0.485, 0.456, 0.406]
         if image_std is None:
@@ -232,6 +233,12 @@ class FasterRCNN(GeneralizedRCNN,WritableToFile):
         transform = GeneralizedRCNNTransform(min_size, max_size, image_mean, image_std)
 
         super(FasterRCNN, self).__init__(backbone, rpn, roi_heads, transform)
+        self.region_selector_head = TwoMLPHead(
+            out_channels * resolution ** 2,
+            representation_size)
+        self.region_selector_predictor = FastRCNNPredictor(
+            representation_size,
+            num_classes)
 
     def forward(self, images, proposals):
         """
@@ -246,21 +253,29 @@ class FasterRCNN(GeneralizedRCNN,WritableToFile):
                 like `scores`, `labels` and `mask` (for Mask R-CNN models).
 
         """
-        original_image_sizes = [img.shape[-2:] for img in images]
-        images, targets = self.transform(images, None)
-        features = self.backbone(images.tensors)
-        if isinstance(features, torch.Tensor):
-            features = OrderedDict([(0, features)])
-        box_features = self.roi_heads.box_roi_pool(features, proposals, images.image_sizes)
-        box_features = self.roi_heads.box_head(box_features)
-        box_features = box_features.detach()
+        proposals_ = [{'boxes': boxes} for boxes in proposals]
+        with torch.no_grad():
+            original_image_sizes = [img.shape[-2:] for img in images]
+            images, resized_proposals = self.transform(images, proposals_) # None
+            resized_proposals = [b['boxes'] for b in resized_proposals]
+            features = self.backbone(images.tensors)
+            if isinstance(features, torch.Tensor):
+                features = OrderedDict([(0, features)])
+            roi_features = self.roi_heads.box_roi_pool(features, resized_proposals, images.image_sizes)
+            
+        box_features = self.roi_heads.box_head(roi_features)
         class_logits = self.roi_heads.box_predictor(box_features)
+
+        region_select_features = self.region_selector_head(roi_features)
+        region_select_logits = self.region_selector_predictor(region_select_features)
         #class_logits, _ = self.roi_heads.box_predictor(box_features)
         
         box_features = self.split_per_image(box_features,proposals)
         class_logits = self.split_per_image(class_logits,proposals)
+        region_select_logits = self.split_per_image(
+            region_select_logits,proposals)
 
-        return class_logits, box_features
+        return class_logits, region_select_logits, box_features
 
     def split_per_image(self,to_split,proposals):
         split = []
@@ -385,6 +400,11 @@ def fasterrcnn_resnet50_fpn(pretrained=False, progress=True,
                     state_dict[key] = model_state_dict[key]
                 else:
                     del state_dict[key]
+
+            for key in model_state_dict.keys():
+                if key not in state_dict:
+                    print('adding new params:',key)
+                    state_dict[key] = model_state_dict[key]
 
         model.load_state_dict(state_dict)
 
