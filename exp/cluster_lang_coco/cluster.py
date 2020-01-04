@@ -85,7 +85,7 @@ def compute_activity(clustered_sentences, exp_dir):
 
         active_nouns[i] = set()
         for word, count in counts.items():
-            if count > 50:
+            if count > 250:
                 active_nouns[i].add(word)
 
         active_nouns[i] = list(active_nouns[i])
