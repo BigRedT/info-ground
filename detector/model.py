@@ -52,5 +52,5 @@ if __name__=='__main__':
         torch.FloatTensor([[10,20,60,80],[10,20,60,80]]).cuda()
         ]
     model = create_detector(extractor=True,num_classes=100).cuda()
-    logits, feats = model(imgs, props)
+    logits, region_logits, feats = model(imgs, props)
     import pdb; pdb.set_trace()
