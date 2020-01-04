@@ -34,6 +34,8 @@ class ClusterPredDatasetConstants(io.JsonSerializableClass):
             coco_paths['proc_dir'],
             f'detections/{subset}')
         self.boxes_hdf5 = os.path.join(self.det_dir,'boxes.hdf5')
+        self.scores_hdf5 = os.path.join(self.det_dir,'scores.hdf5')
+        self.labels_hdf5 = os.path.join(self.det_dir,'labels.hdf5')
 
 
 class ClusterPredDataset(Dataset):
@@ -61,6 +63,7 @@ class ClusterPredDataset(Dataset):
         return image_path
 
     def get_label_vector(self,labels):
+        #labels = [l for l in labels if '-1' not in l]
         word_to_idx = {}
         for label in labels:
             word = label.split('_')[0]
@@ -89,18 +92,49 @@ class ClusterPredDataset(Dataset):
         boxes = f[image_name][()]
         f.close()
         return boxes
+    
+    def read_scores(self,image_id):
+        image_id_str = str(image_id).zfill(12)
+        image_name = f'{self.const.image_name_prefix}_{image_id_str}'
+        f = io.load_h5py_object(self.const.scores_hdf5)
+        scores = f[image_name][()]
+        f.close()
+        return scores
+
+    def read_det_labels(self,image_id):
+        image_id_str = str(image_id).zfill(12)
+        image_name = f'{self.const.image_name_prefix}_{image_id_str}'
+        f = io.load_h5py_object(self.const.labels_hdf5)
+        labels = f[image_name][()]
+        f.close()
+        return labels
+
+    def get_det_label_vector(self,det_labels,scores):
+        B = scores.shape[0]
+        L = 91
+        vec = np.zeros([B,L],dtype=np.float32)
+        for i in range(B):
+            vec[i,det_labels[i]] = scores[i]
+        
+        return vec
         
     def __getitem__(self,i):
         image_id, labels = self.image_labels[i]
         image = self.read_image(image_id)
         boxes = self.read_boxes(image_id)
+        scores = self.read_scores(image_id)
+        det_labels = self.read_det_labels(image_id)
         if boxes.shape[0]==0:
             return None
 
-        if boxes.shape[0] > 30:
-            boxes = boxes[:30]
+        if boxes.shape[0] > 20:
+            boxes = boxes[:20]
+            scores = scores[:20]
+            det_labels = det_labels[:20]
+
         label_vec = self.get_label_vector(labels)
-        
+        det_label_vec = self.get_det_label_vector(det_labels,scores)
+
         image_path = self.image_id_to_path(image_id)
 
         to_return = {
@@ -110,6 +144,9 @@ class ClusterPredDataset(Dataset):
             'labels': labels,
             'label_vec': label_vec,
             'boxes': boxes,
+            'scores': scores,
+            'det_labels': det_labels,
+            'det_label_vec': det_label_vec,
         }
         return to_return
 
@@ -125,7 +162,7 @@ class ClusterPredDataset(Dataset):
             for k in batch[0].keys():
                 collated_batch[k] = [sample[k] for sample in batch]
 
-            for k in ['image','label_vec','boxes']:
+            for k in ['image','label_vec','boxes','scores','det_label_vec']:
                 collated_batch[k] = [
                     torch.FloatTensor(s) for s in collated_batch[k]]
             return collated_batch
