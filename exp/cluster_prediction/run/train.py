@@ -38,7 +38,7 @@ def main(**kwargs):
     exp_const.vis_dir = os.path.join(exp_const.exp_dir,'vis')
     exp_const.optimizer = 'Adam'
     exp_const.lr = kwargs['lr']
-    exp_const.momentum = None
+    exp_const.momentum = 0.9
     exp_const.num_epochs = 10
     exp_const.log_step = 20
     exp_const.model_save_step = 2000 # 100000/5

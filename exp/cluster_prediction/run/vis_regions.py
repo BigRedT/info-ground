@@ -35,7 +35,7 @@ def main(**kwargs):
     model_const.model_num = kwargs['model_num']
     model_const.detector_path = os.path.join(
         exp_const.model_dir,
-        f'detectorr_{model_const.model_num}')
+        f'detector_{model_const.model_num}')
 
     vis(exp_const,data_const,model_const)
 
