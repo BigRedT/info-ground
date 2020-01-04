@@ -62,7 +62,7 @@ extracted:
       val: bert_noun_feats_val2014.json
   
 clusters:
-  dir: /home/workspace/Data/context-regions/coco_exp/bert_noun_clusters_2000
+  dir: /shared/rsaas/tgupta6/Data/context-regions/coco_exp/bert_noun_clusters_2000
   centers: cluster_centers.npy
   image_labels: 
     train: image_labels.json

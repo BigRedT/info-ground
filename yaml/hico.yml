@@ -1,0 +1,31 @@
+downloads_dir: /home/workspace/Data/context-regions/hico_downloads
+proc_dir: /home/workspace/Data/context-regions/hico_proc
+exp_dir: /home/workspace/Data/context-regions/hico_exp
+hico_tar_gz: /home/workspace/Data/context-regions/hico_downloads/hico_20150920.tar.gz
+image_dir: /dev/shm/context-regions/hico_images
+local_proc_dir: /dev/shm/context-regions/hico_proc
+detection_dir: /dev/shm/context-regions/hico_proc/detections
+
+# Downloaded annotations
+anno_mat: anno.mat
+
+# Image subdirs
+image_sub_dir:
+  train_val: train2015
+  train: train2015
+  val: train2015
+  test: test2015
+
+# Processed files (in proc_dir)
+hoi_list_json: hoi_list.json
+subset_list_json:
+  train_val: train_val_list.json
+  train: train_list.json
+  val: val_list.json
+  test: test_list.json
+
+labels_npy:
+  train_val: train_val_labels.npy
+  train: train_labels.npy
+  val: val_labels.npy
+  test: test_labels.npy
