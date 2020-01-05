@@ -10,37 +10,12 @@ import numpy as np
 
 import utils.io as io
 from utils.constants import save_constants, Constants
-from .models.object_encoder import ObjectEncoder
+
+from detector.model import create_detector
 from .models.cap_encoder import CapEncoder
-from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
-from exp.eval_flickr.dataset import FlickrDataset
+from .cluster_labeler import ClusterLabeler
+from exp.eval_flickr.dataset_wo_features import FlickrDataset
 from utils.bbox_utils import compute_iou, point_in_box, compute_center
-
-
-def create_cap_info_nce_criterion(o_dim,u_dim,w_dim,d):
-    fo = FLayer(o_dim,d)
-    fw = FLayer(w_dim,d)
-    ku = KLayer(u_dim,d)
-    kw = KLayer(w_dim,d)
-    criterion = CapInfoNCE(fo,fw,ku,kw)
-    
-    return criterion
-
-
-# def combine_token_obj_att(token_obj_att,tokens):
-#     num_tokens = len(tokens)
-#     att = []
-#     special_chars = {'-',"'"}
-#     for i in range(1,num_tokens-1):
-#         token = tokens[i]
-#         if (len(token) >= 2 and token[:2]=='##') or \
-#             (tokens[i-1] in special_chars) or (token in special_chars):
-#             att[-1] = torch.max(att[-1],token_obj_att[i])
-#         else:
-#             att.append(token_obj_att[i])
-    
-#     att = torch.stack(att,0)
-#     return att
 
 
 def combine_tokens(tokens,words):
@@ -87,21 +62,10 @@ def map_phrase_to_tokens(phrase_info,combined_tokens):
     return token_ids
 
 
-def combine_att(token_obj_att,phrase_token_ids):
-    phrase_att = None
-    for i in phrase_token_ids:
-        if phrase_att is None:
-            phrase_att = token_obj_att[i]
-        else:
-            phrase_att = torch.max(phrase_att,token_obj_att[i])
-    
-    return phrase_att
-
-
-def select_boxes(boxes,phrase_att,k=3):
-    box_ids = torch.topk(phrase_att,k)[1]
-    selected_boxes = [boxes[i] for i in box_ids if i < len(boxes)]
-    return selected_boxes
+def map_phrase_last_word_to_tokens(phrase_info,combined_tokens):
+    phrase = phrase_info['phrase']
+    num_words = len(phrase.split())
+    return combined_tokens[phrase_info['first_word_index']+num_words-1]
 
 
 def compute_recall(pred_boxes,gt_boxes,k=1):
@@ -143,50 +107,43 @@ def compute_pt_acc(pred_boxes,gt_boxes):
     return float(pt_recalled)
 
 
-def eval_model(model,dataset,exp_const):
-    # Set mode
-    model.object_encoder.eval()
+def eval_model(model,dataset,cluster_labeler,exp_const):
+    model.detector.eval()
     model.cap_encoder.eval()
-    model.lang_sup_criterion.eval()
 
     pt_recalled_phrases = 0
     recalled_phrases = [0]*3
     num_phrases = 0
-    for it,data in enumerate(tqdm(dataset)):
-        # Forward pass
-        object_features = torch.FloatTensor(data['features']).cuda().unsqueeze(0)
-        pad_mask = torch.FloatTensor(data['pad_mask']).cuda().unsqueeze(0)
-        context_object_features, obj_obj_att = model.object_encoder(
-            object_features,
-            pad_mask=pad_mask)
-            
-        # Compute loss 
-        token_ids, tokens, token_lens = model.cap_encoder.tokenize_batch(
-            [data['caption']])
-        token_ids = torch.LongTensor(token_ids).cuda()
-        token_features, word_word_att = model.cap_encoder(token_ids)
-
-        token_mask = torch.zeros(token_ids.size()).cuda()
-        lang_sup_loss, token_obj_att, att_V_o = \
-            model.lang_sup_criterion(
-                context_object_features,
-                object_features,
-                token_features,
-                token_mask)
-
-        token_obj_att = token_obj_att[0,0]
-        tokens = tokens[0]
-        words = data['caption'].split()
-        combined_tokens = combine_tokens(tokens,words)
+    for i in tqdm(range(len(dataset))):
+        data = dataset[i]
         
+        boxes = [torch.FloatTensor(data['boxes'][:20]).cuda()]
+        image = [torch.FloatTensor(data['image']).cuda()]
+        _,region_logits,_ = model.detector(image,boxes)
+        region_logits = region_logits[0]
+        _,selected_box_ids = torch.max(region_logits,0)
+        selected_box_ids = selected_box_ids.detach().cpu().numpy()
+
+        token_ids, tokens, token_lens= model.cap_encoder.tokenize_batch([data['caption']])
+        token_embed = model.cap_encoder(torch.LongTensor(token_ids).cuda())[0]
+        tokens = tokens[0]
+        words = data['caption'].split(' ')
+        combined_tokens = combine_tokens(tokens,words)
         for phrase_info in data['phrases']:
-            phrase_token_ids = map_phrase_to_tokens(
+            phrase_token_ids = map_phrase_last_word_to_tokens(
                 phrase_info,
                 combined_tokens)
+            phrase_embed = token_embed[list(phrase_token_ids)]
+            phrase_embed = phrase_embed.mean(0).detach().cpu().numpy()
+            word = phrase_info['phrase'].split(' ')[-1]
+            label = cluster_labeler.get_label(word,phrase_embed)
+            idx = cluster_labeler.get_idx(label)
+            if idx==-1:
+                pred_boxes = [data['boxes'][0]]
+            else:
+                box_id = selected_box_ids[idx]
+                pred_boxes = [data['boxes'][box_id]]
 
-            phrase_att = combine_att(token_obj_att,phrase_token_ids)
-            pred_boxes = select_boxes(data['boxes'],phrase_att)
-            
             phrase_id = phrase_info['phrase_id']
             if phrase_id not in data['gt_boxes']['boxes']:
                 continue
@@ -196,9 +153,9 @@ def eval_model(model,dataset,exp_const):
             is_recalled, pred_box, gt_box = compute_recall(
                 pred_boxes,
                 gt_phrase_boxes,
-                k=3)
+                k=1)
 
-            for k in range(3):
+            for k in range(1):
                 recalled_phrases[k] += is_recalled[k]
             
             is_pt_recalled = compute_pt_acc(pred_boxes,gt_phrase_boxes)
@@ -210,13 +167,13 @@ def eval_model(model,dataset,exp_const):
                 recall = [rp/num_phrases for rp in recalled_phrases]
                 pt_recall = pt_recalled_phrases / num_phrases
                 print(recall,pt_recall)
-            #import pdb; pdb.set_trace()
     
     recall = [round(100*rp/num_phrases,2) for rp in recalled_phrases]
     pt_recall = round(100*pt_recalled_phrases / num_phrases,2)
     print(recall,pt_recall)
+    
+    import pdb; pdb.set_trace()
 
-    return recall
 
 
 def main(exp_const,data_const,model_const):
@@ -225,31 +182,44 @@ def main(exp_const,data_const,model_const):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
+    print('Creating dataloader ...')
+    dataset = FlickrDataset(data_const)
+    
+    print('Loading cluster info ...')
+    print('    Loading cluster centers ...')
+    cluster_centers = np.load(os.path.join(
+        data_const.cluster_info['dir'],
+        data_const.cluster_info['centers']))
+
+    print('    Loading labels ...')
+    labels = io.load_json_object(os.path.join(
+        data_const.cluster_info['dir'],
+        data_const.cluster_info['labels']['train']))
+
+    print('    Loading active nouns ...')
+    active_nouns = io.load_json_object(os.path.join(
+        data_const.cluster_info['dir'],
+        data_const.cluster_info['active_nouns']))
+
+    print('Creating cluster labeler ...')
+    cluster_labeler = ClusterLabeler(
+        cluster_centers,
+        labels,
+        active_nouns)
+
     print('Creating network ...')
     model = Constants()
     model.const = model_const
-    model.object_encoder = ObjectEncoder(model.const.object_encoder)
+    model.const.num_classes = len(labels)
+    print('Num classes:',model.const.num_classes)
     model.cap_encoder = CapEncoder(model.const.cap_encoder)
-    model.lang_sup_criterion = create_cap_info_nce_criterion(
-        model.object_encoder.const.context_layer.hidden_size,
-        model.object_encoder.const.object_feature_dim,
-        model.cap_encoder.model.config.hidden_size,
-        model.cap_encoder.model.config.hidden_size//2)
-    if model.const.model_num != -1:
-        loaded_object_encoder = torch.load(model.const.object_encoder_path)
-        print('Loaded model number:',loaded_object_encoder['step'])
-        model.object_encoder.load_state_dict(
-            loaded_object_encoder['state_dict'])
-        model.lang_sup_criterion.load_state_dict(
-            torch.load(model.const.lang_sup_criterion_path)['state_dict'])
-    model.object_encoder.cuda()
+    model.detector = create_detector(
+        extractor=True,
+        num_classes=model.const.num_classes).cuda()
+    loaded_detector = torch.load(model.const.detector_path)
+    model.detector.load_state_dict(loaded_detector['state_dict'])
     model.cap_encoder.cuda()
-    model.lang_sup_criterion.cuda()
-
-    print('Creating dataloader ...')
-    dataset = FlickrDataset(data_const)
+    model.detector.cuda()
 
     with torch.no_grad():
-        recall = eval_model(model,dataset,exp_const)
-
-    #print(eval_results)
+        recall = eval_model(model,dataset,cluster_labeler,exp_const)
