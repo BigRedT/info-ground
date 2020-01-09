@@ -38,19 +38,26 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
         _,_,Du = u.size()
         Bw,Tw,Dw = w.size()
 
+        # Compute keys from uncontextualized object features
         Ku = self.ku(u)
-        Kw = self.kw(w)
-        
-        D = Kw.size(2)
 
+        # Compute keys from word features
+        Kw = self.kw(w)
+    
+
+        # Compute attention using Ku and Kw
+        D = Kw.size(2)
         Kw = Kw.unsqueeze(1).unsqueeze(3) # Bwx1xTwx1xD
         Ku = Ku.unsqueeze(1) # Box1xToxD
         att = torch.sum(Kw*Ku,4,keepdim=True) # BwxBoxTwxTox1
         att = att / torch.sqrt(torch.tensor(D).float()) # BwxBoxTwxTox1
         att = F.softmax(att,3)
         
+        # Compute values from contextualized object features
         o = o.unsqueeze(1) # Box1xToxDo
         V_o = self.fo(o)
+
+        # Compute attended V_o for each word
         att_V_o = torch.sum(att*V_o,3) # BwxBoxTwxDo
         
         w = w.unsqueeze(1) # Bwx1xTwxDw
@@ -98,8 +105,10 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
 
         return att_V_o
 
-    def att_V_o_for_verbs(self,o,u,w):
+    def att_V_o_for_negs(self,o,u,w):
         """
+        Same as att_V_o but only for pairs not across pairs.
+
         Input:
         :o: BoxToxDo contextualized object features
         :u: BoxToxDu uncontextualized object features
@@ -128,6 +137,7 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
 
         return att_V_o
 
+
 class KVLayer(nn.Module,io.WritableToFile):
     def __init__(self,d_in,d_out):
         super().__init__()
@@ -155,18 +165,6 @@ class KLayer(nn.Module,io.WritableToFile):
 
 
 class FLayer(nn.Module,io.WritableToFile):
-    def __init__(self,d_in,d_out):
-        super().__init__()
-        self.f_layer = nn.Linear(d_in,d_out)
-    
-    def forward(self,x):
-        Bw,Bo,Tw,Do = x.size()
-        x = x.view(-1,Do)
-        x = self.f_layer(x)
-        x = x.view(Bw,Bo,Tw,-1)
-        return x
-
-class FLayer3d(nn.Module,io.WritableToFile):
     def __init__(self,d_in,d_out):
         super().__init__()
         self.f_layer = nn.Linear(d_in,d_out)

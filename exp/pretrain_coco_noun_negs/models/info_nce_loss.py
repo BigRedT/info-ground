@@ -59,11 +59,6 @@ class InfoNCE(nn.Module,io.WritableToFile):
         log_softmax2 = F.log_softmax(logits,0) # Select feature given context
         avg_log_softmax = 0.5*(log_softmax1 + 0*log_softmax2)
         loss = -avg_log_softmax.mean(2).diag().mean()
-        # loss = 0
-        # for i in range(T_):
-        #     loss += avg_log_softmax[:,:,i].diag().mean()
-        
-        # loss = loss / T_
 
         return loss
 

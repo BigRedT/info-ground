@@ -17,7 +17,7 @@ from .models.object_encoder import ObjectEncoder
 from .models.cap_encoder import CapEncoder
 from .models.info_nce_loss import InfoNCE
 from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
-from .models.neg_verb_loss import compute_neg_verb_loss
+from .models.neg_noun_loss import compute_neg_noun_loss
 from .dataset import DetFeatDataset
 
 
@@ -99,10 +99,6 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                 word_features, token_mask = model.cap_encoder.select_embed(
                     token_features,
                     noun_verb_token_ids)
-                verb_ids = data['verb_id'].cuda()
-                pos_verb_feats, verb_token_mask = model.cap_encoder.select_embed(
-                    token_features,
-                    verb_ids.unsqueeze(1))
                 noun_ids = data['noun_id'].cuda()
                 _, noun_token_mask = model.cap_encoder.select_embed(
                     token_features,
@@ -115,49 +111,20 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                     word_features.detach(),
                     token_mask)
             
-            
-            # att_V_o = model.lang_sup_criterion.att_V_o(
-            #     context_object_features,
-            #     object_features,
-            #     verb_features.detach())
-
-            # neg_verb_feats = data['neg_verb_feats'].cuda()
-            # verb_feats = torch.cat((pos_verb_feats,neg_verb_feats),1) # Bx(N+1)xDw
-
-            verb_feats = data['neg_verb_feats'].cuda()
-            att_V_o = model.lang_sup_criterion.att_V_o_for_verbs(
-                context_object_features,
-                object_features,
-                verb_feats.detach()) # Bx(N+1)xD
-            valid_verb_mask = 1-verb_token_mask # Bx1
-            neg_verb_loss,_ = compute_neg_verb_loss(
-                att_V_o,
-                verb_feats,
-                valid_verb_mask,
-                model.lang_sup_criterion.fw.f_layer)
-            
             noun_feats = data['neg_noun_feats'].cuda()
-            att_V_o = model.lang_sup_criterion.att_V_o_for_verbs(
+            att_V_o = model.lang_sup_criterion.att_V_o_for_negs(
                 context_object_features,
                 object_features,
                 noun_feats.detach()) # Bx(N+1)xD
             valid_noun_mask = 1-noun_token_mask # Bx1
-            neg_noun_loss,_ = compute_neg_verb_loss(
+            neg_noun_loss,_ = compute_neg_noun_loss(
                 att_V_o,
                 noun_feats,
                 valid_noun_mask,
                 model.lang_sup_criterion.fw.f_layer)
 
-            # neg_verb_loss,_ = compute_neg_verb_loss(
-            #     att_V_o,
-            #     verb_ids,
-            #     neg_verb_feats,
-            #     token_features,
-            #     model.lang_sup_criterion.fw.f_layer)
-
             loss = exp_const.self_sup_loss_wt*self_sup_loss + \
                 exp_const.lang_sup_loss_wt*lang_sup_loss + \
-                exp_const.neg_verb_loss_wt*neg_verb_loss + \
                 exp_const.neg_noun_loss_wt*neg_noun_loss
 
             # Backward pass
@@ -169,7 +136,6 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                 log_items = {
                     'Self_Sup_Loss/Train': self_sup_loss.item(),
                     'Lang_Sup_Loss/Train': lang_sup_loss.item(),
-                    'Neg_Verb_Loss/Train': neg_verb_loss.item(),
                     'Neg_Noun_Loss/Train': neg_noun_loss.item(),
                     'Loss/Train': loss.item(),
                     'Lr': exp_const.lr,
@@ -215,7 +181,6 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                 log_items = {
                     'Self_Sup_Loss/Val': eval_results['self_sup_loss'],
                     'Lang_Sup_Loss/Val': eval_results['lang_sup_loss'],
-                    'Neg_Verb_Loss/Val': eval_results['neg_verb_loss'],
                     'Neg_Noun_Loss/Val': eval_results['neg_noun_loss'],
                     'Loss/Val': eval_results['total_loss']
                 }
@@ -256,7 +221,6 @@ def eval_model(model,dataloader,exp_const,step):
 
     avg_self_sup_loss = 0
     avg_lang_sup_loss = 0
-    avg_neg_verb_loss = 0
     avg_neg_noun_loss = 0
     num_samples = 0
     for it,data in enumerate(tqdm(dataloader)):
@@ -287,10 +251,6 @@ def eval_model(model,dataloader,exp_const,step):
         word_features, token_mask = model.cap_encoder.select_embed(
             token_features,
             noun_verb_token_ids)
-        verb_ids = data['verb_id'].cuda()
-        pos_verb_feats, verb_token_mask = model.cap_encoder.select_embed(
-            token_features,
-            verb_ids.unsqueeze(1))
         noun_ids = data['noun_id'].cuda()
         _, noun_token_mask = model.cap_encoder.select_embed(
             token_features,
@@ -302,67 +262,35 @@ def eval_model(model,dataloader,exp_const,step):
             word_features,
             token_mask)
 
-        # neg_verb_feats = data['neg_verb_feats'].cuda()
-        # verb_feats = torch.cat((pos_verb_feats,neg_verb_feats),1) # Bx(N+1)xDw
-
-        verb_feats = data['neg_verb_feats'].cuda()
-        att_V_o = model.lang_sup_criterion.att_V_o_for_verbs(
-            context_object_features,
-            object_features,
-            verb_feats.detach()) # Bx(N+1)xD
-        valid_verb_mask = 1-verb_token_mask # Bx1
-        neg_verb_loss,_ = compute_neg_verb_loss(
-            att_V_o,
-            verb_feats,
-            valid_verb_mask,
-            model.lang_sup_criterion.fw.f_layer)
-
         noun_feats = data['neg_noun_feats'].cuda()
-        att_V_o = model.lang_sup_criterion.att_V_o_for_verbs(
+        att_V_o = model.lang_sup_criterion.att_V_o_for_negs(
             context_object_features,
             object_features,
             noun_feats.detach()) # Bx(N+1)xD
         valid_noun_mask = 1-noun_token_mask # Bx1
-        neg_noun_loss,_ = compute_neg_verb_loss(
+        neg_noun_loss,_ = compute_neg_noun_loss(
             att_V_o,
             noun_feats,
             valid_noun_mask,
             model.lang_sup_criterion.fw.f_layer)
-
-        # att_V_o = model.lang_sup_criterion.att_V_o(
-        #     context_object_features,
-        #     object_features,
-        #     verb_features.detach())
-
-        # neg_verb_feats = data['neg_verb_feats'].cuda()
-        # neg_verb_loss,_ = compute_neg_verb_loss(
-        #     att_V_o,
-        #     verb_ids,
-        #     neg_verb_feats,
-        #     token_features,
-        #     model.lang_sup_criterion.fw.f_layer)
 
         # Aggregate loss or accuracy
         batch_size = object_features.size(0)
         num_samples += batch_size
         avg_self_sup_loss += (self_sup_loss.item()*batch_size)
         avg_lang_sup_loss += (lang_sup_loss.item()*batch_size)
-        avg_neg_verb_loss += (neg_verb_loss.item()*batch_size)
         avg_neg_noun_loss += (neg_noun_loss.item()*batch_size)
 
     avg_self_sup_loss = avg_self_sup_loss / num_samples
     avg_lang_sup_loss = avg_lang_sup_loss / num_samples
-    avg_neg_verb_loss = avg_neg_verb_loss / num_samples
     avg_neg_noun_loss = avg_neg_noun_loss / num_samples
     total_loss = exp_const.self_sup_loss_wt*avg_self_sup_loss + \
         exp_const.lang_sup_loss_wt*avg_lang_sup_loss + \
-        exp_const.neg_verb_loss_wt*avg_neg_verb_loss + \
         exp_const.neg_noun_loss_wt*avg_neg_noun_loss
 
     eval_results = {
         'self_sup_loss': avg_self_sup_loss, 
         'lang_sup_loss': avg_lang_sup_loss,
-        'neg_verb_loss': avg_neg_verb_loss,
         'neg_noun_loss': avg_neg_noun_loss,
         'total_loss': total_loss,
     }

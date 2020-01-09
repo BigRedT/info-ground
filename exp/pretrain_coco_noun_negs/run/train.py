@@ -34,11 +34,6 @@ from ..train import main as train
     type=int,
     help='Training batch size')
 @click.option(
-    '--neg_verb_loss_wt',
-    default=1.0,
-    type=float,
-    help='Weight for negative verb loss')
-@click.option(
     '--neg_noun_loss_wt',
     default=1.0,
     type=float,
@@ -70,7 +65,6 @@ def main(**kwargs):
     exp_const.val_batch_size = 20
     exp_const.num_workers = 10
     exp_const.seed = 0
-    exp_const.neg_verb_loss_wt = kwargs['neg_verb_loss_wt']
     exp_const.neg_noun_loss_wt = kwargs['neg_noun_loss_wt']
     exp_const.self_sup_loss_wt = kwargs['self_sup_loss_wt']
     exp_const.lang_sup_loss_wt = kwargs['lang_sup_loss_wt']
