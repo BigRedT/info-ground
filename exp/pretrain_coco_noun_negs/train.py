@@ -19,6 +19,7 @@ from .models.info_nce_loss import InfoNCE
 from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
 from .models.neg_noun_loss import compute_neg_noun_loss
 from .dataset import DetFeatDataset
+from .self_sup_dataset import SelfSupDetFeatDataset
 
 
 def create_info_nce_criterion(x_dim,c_dim,d):
@@ -78,10 +79,14 @@ def train_model(model,dataloaders,exp_const,tb_writer):
             object_features = data['features'].cuda()
             object_mask = data['object_mask'].cuda()
             pad_mask = data['pad_mask'].cuda()
-            context_object_features, obj_obj_att = model.object_encoder(
-                object_features,
-                object_mask,
-                pad_mask)
+
+            if exp_const.contextualize==True:
+                context_object_features, _ = model.object_encoder(
+                    object_features,
+                    object_mask,
+                    pad_mask)
+            else:
+                context_object_features = object_features
                 
             # Compute self supervision loss
             self_sup_loss = model.self_sup_criterion(
@@ -232,10 +237,14 @@ def eval_model(model,dataloader,exp_const,step):
         object_features = data['features'].cuda()
         object_mask = data['object_mask'].cuda()
         pad_mask = data['pad_mask'].cuda()
-        context_object_features, obj_obj_att = model.object_encoder(
-            object_features,
-            object_mask,
-            pad_mask)
+
+        if exp_const.contextualize==True:
+            context_object_features, _ = model.object_encoder(
+                object_features,
+                object_mask,
+                pad_mask)
+        else:
+            context_object_features = object_features
             
         # Compute loss
         self_sup_loss = model.self_sup_criterion(
@@ -324,12 +333,21 @@ def main(exp_const,data_const,model_const):
     model.const = model_const
     model.object_encoder = ObjectEncoder(model.const.object_encoder)
     model.cap_encoder = CapEncoder(model.const.cap_encoder)
+
+    c_dim = model.object_encoder.const.object_feature_dim
+    if exp_const.contextualize==True:
+        c_dim = model.object_encoder.const.context_layer.hidden_size
     model.self_sup_criterion = create_info_nce_criterion(
         model.object_encoder.const.object_feature_dim,
-        model.object_encoder.const.context_layer.hidden_size,
+        c_dim,
         model.object_encoder.const.context_layer.hidden_size)
+    
+    o_dim = model.object_encoder.const.object_feature_dim
+    if exp_const.contextualize==True:
+        o_dim = model.object_encoder.const.context_layer.hidden_size
+    
     model.lang_sup_criterion = create_cap_info_nce_criterion(
-        model.object_encoder.const.context_layer.hidden_size,
+        o_dim,
         model.object_encoder.const.object_feature_dim,
         model.cap_encoder.model.config.hidden_size,
         model.cap_encoder.model.config.hidden_size//2)
@@ -353,8 +371,12 @@ def main(exp_const,data_const,model_const):
 
     print('Creating dataloader ...')
     dataloaders = {}
+    FeatDataset = DetFeatDataset
+    if exp_const.self_sup_feat==True:
+        FeatDataset = SelfSupDetFeatDataset
+
     for mode, const in data_const.items():
-        dataset = DetFeatDataset(const)
+        dataset = FeatDataset(const)
         
         if mode=='train':
             shuffle=True

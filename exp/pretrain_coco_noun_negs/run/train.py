@@ -4,6 +4,7 @@ import click
 from utils.constants import Constants, ExpConstants
 from global_constants import coco_paths
 from ..dataset import DetFeatDatasetConstants
+from ..self_sup_dataset import SelfSupDetFeatDatasetConstants
 from ..models.object_encoder import ObjectEncoderConstants
 from ..models.cap_encoder import CapEncoderConstants
 from ..train import main as train
@@ -48,6 +49,14 @@ from ..train import main as train
     default=1.0,
     type=float,
     help='Weight for language supervision loss')
+@click.option(
+    '--no_context',
+    is_flag=True,
+    help='Apply flag to switch off contextualization')
+@click.option(
+    '--self_sup_feat',
+    is_flag=True,
+    help='Apply flag to use self-supervised features')
 def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.log_dir = os.path.join(exp_const.exp_dir,'logs')
@@ -68,16 +77,24 @@ def main(**kwargs):
     exp_const.neg_noun_loss_wt = kwargs['neg_noun_loss_wt']
     exp_const.self_sup_loss_wt = kwargs['self_sup_loss_wt']
     exp_const.lang_sup_loss_wt = kwargs['lang_sup_loss_wt']
+    exp_const.contextualize = not kwargs['no_context']
+    exp_const.self_sup_feat = kwargs['self_sup_feat']
+    
+    DatasetConstants = DetFeatDatasetConstants
+    if exp_const.self_sup_feat==True:
+        DatasetConstants = SelfSupDetFeatDatasetConstants
     
     data_const = {
-        'train': DetFeatDatasetConstants('train'),
-        'val': DetFeatDatasetConstants('val'),
+        'train': DatasetConstants('train'),
+        'val': DatasetConstants('val'),
     }
 
     model_const = Constants()
     model_const.model_num = kwargs['model_num']
     model_const.object_encoder = ObjectEncoderConstants()
     model_const.object_encoder.context_layer.output_attentions = True
+    if exp_const.self_sup_feat==True:
+        model_const.object_encoder.object_feature_dim = 1024 + 256
     model_const.cap_encoder = CapEncoderConstants()
     model_const.cap_encoder.output_attentions = True
     model_const.object_encoder_path = os.path.join(
