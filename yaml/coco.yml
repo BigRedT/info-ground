@@ -60,6 +60,9 @@ extracted:
     feat_info:
       train: bert_noun_feats_train2014.json
       val: bert_noun_feats_val2014.json
+  self_sup_feats:
+    train: cmc_resnet50v3_train2014.h5py
+    val: cmc_resnet50v3_val2014.h5py
   
 clusters:
   dir: /shared/rsaas/tgupta6/Data/context-regions/coco_exp/bert_noun_clusters_2000
