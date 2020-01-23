@@ -21,3 +21,6 @@ sentences:
   train: sentences_train.json
   val: sentences_val.json
   test: sentences_test.json
+
+self_sup_feats:
+  test: cmc_resnet50v3_test.h5py
