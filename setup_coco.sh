@@ -16,4 +16,5 @@ cp -r "${NFS_DATA}/coco_proc/detections" $COCO_PROC
 # Copy cache features
 cp -r "${NFS_DATA}/coco_proc/bert_noun_negatives_train2014.h5py" $COCO_PROC
 cp -r "${NFS_DATA}/coco_proc/bert_noun_negatives_val2014.h5py" $COCO_PROC
-
+cp -r "${NFS_DATA}/coco_proc/cmc_resnet50v3_train2014.h5py" $COCO_PROC
+cp -r "${NFS_DATA}/coco_proc/cmc_resnet50v3_val2014.h5py" $COCO_PROC
