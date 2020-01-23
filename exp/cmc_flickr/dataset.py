@@ -11,7 +11,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
 
 import utils.io as io
-from global_constants import coco_paths
+from global_constants import flickr_paths
 
 
 class RGB2Lab(object):
@@ -22,16 +22,13 @@ class RGB2Lab(object):
         return img
 
 
-class COCODatasetConstants(io.JsonSerializableClass):
+class FlickrDatasetConstants(io.JsonSerializableClass):
     def __init__(self,subset):
         super().__init__()
         self.subset = subset
-        self.image_dir = coco_paths['image_dir']
-        self.subset_image_dirname = coco_paths['extracted']['images'][subset]
+        self.image_dir = flickr_paths['image_dir']
 
-        self.det_dir = os.path.join(
-            coco_paths['local_proc_dir'],
-            f'detections/{subset}')
+        self.det_dir = os.path.join(flickr_paths['det_dir'],self.subset)
         self.boxes_hdf5 = os.path.join(self.det_dir,'boxes.hdf5')
 
         self.image_size = (224,224)
@@ -42,7 +39,7 @@ def crop_box(image,box,size,transforms):
     return transforms(crop)
 
 
-class COCODataset(Dataset):
+class FlickrDataset(Dataset):
     def __init__(self,const):
         self.const = deepcopy(const)
         self.image_ids = self.get_image_ids()
@@ -62,7 +59,7 @@ class COCODataset(Dataset):
 
     def get_image_path(self,image_id):
         return os.path.join(
-            os.path.join(self.const.image_dir,self.const.subset_image_dirname),
+            self.const.image_dir,
             f'{image_id}.jpg')
     
     def read_image(self,img_path):
@@ -130,8 +127,8 @@ class COCODataset(Dataset):
 
 
 if __name__=='__main__':
-    const = COCODatasetConstants('train')
-    dataset = COCODataset(const)
+    const = FlickrDatasetConstants('test')
+    dataset = FlickrDataset(const)
     dataloader = DataLoader(
         dataset,
         batch_size=10,
