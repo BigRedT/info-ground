@@ -4,10 +4,10 @@ import click
 from utils.constants import Constants, ExpConstants
 from global_constants import coco_paths
 from exp.eval_flickr.dataset import  FlickrDatasetConstants
+from exp.eval_flickr.self_sup_dataset import SelfSupFlickrDatasetConstants
 from ..models.object_encoder import ObjectEncoderConstants
 from ..models.cap_encoder import CapEncoderConstants
 from .. import eval_flickr_phrase_loc
-from .. import eval_flickr_phrase_loc_wo_obj_encoder
 
 @click.command()
 @click.option(
@@ -24,20 +24,32 @@ from .. import eval_flickr_phrase_loc_wo_obj_encoder
     type=int,
     help='Model number. -1 implies begining of training. -100 means best')
 @click.option(
-    '--wo_obj_enc',
+    '--no_context',
     is_flag=True,
-    help='Evaluate object detector features')
+    help='Apply flag to switch off contextualization')
+@click.option(
+    '--self_sup_feat',
+    is_flag=True,
+    help='Apply flag to use self-supervised features')
 def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.model_dir = os.path.join(exp_const.exp_dir,'models')
     exp_const.seed = 0
+    exp_const.contextualize = not kwargs['no_context']
+    exp_const.self_sup_feat = kwargs['self_sup_feat']
 
-    data_const = FlickrDatasetConstants('test')
+    DatasetConstants = FlickrDatasetConstants
+    if exp_const.self_sup_feat==True:
+        DatasetConstants = SelfSupFlickrDatasetConstants
+
+    data_const = DatasetConstants('test')
 
     model_const = Constants()
     model_const.model_num = kwargs['model_num']
     model_const.object_encoder = ObjectEncoderConstants()
     model_const.object_encoder.context_layer.output_attentions = True
+    if exp_const.self_sup_feat==True:
+        model_const.object_encoder.object_feature_dim = 1024 + 256
     model_const.cap_encoder = CapEncoderConstants()
     model_const.cap_encoder.output_attentions = True
 
@@ -56,11 +68,7 @@ def main(**kwargs):
             exp_const.model_dir,
             f'lang_sup_criterion_{model_const.model_num}')
 
-    if kwargs['wo_obj_enc']==True:
-        eval_flickr_phrase_loc_wo_obj_encoder.main(
-            exp_const,data_const,model_const)
-    else:
-        eval_flickr_phrase_loc.main(exp_const,data_const,model_const)
+    eval_flickr_phrase_loc.main(exp_const,data_const,model_const)
 
 
 if __name__=='__main__':

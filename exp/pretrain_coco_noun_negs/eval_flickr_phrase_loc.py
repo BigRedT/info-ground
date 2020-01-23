@@ -14,6 +14,7 @@ from .models.object_encoder import ObjectEncoder
 from .models.cap_encoder import CapEncoder
 from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
 from exp.eval_flickr.dataset import FlickrDataset
+from exp.eval_flickr.self_sup_dataset import SelfSupFlickrDataset
 from utils.bbox_utils import compute_iou, point_in_box, compute_center
 
 
@@ -156,10 +157,14 @@ def eval_model(model,dataset,exp_const):
         # Forward pass
         object_features = torch.FloatTensor(data['features']).cuda().unsqueeze(0)
         pad_mask = torch.FloatTensor(data['pad_mask']).cuda().unsqueeze(0)
-        context_object_features, obj_obj_att = model.object_encoder(
-            object_features,
-            pad_mask=pad_mask)
-            
+
+        if exp_const.contextualize==True:
+            context_object_features, obj_obj_att = model.object_encoder(
+                object_features,
+                pad_mask=pad_mask)
+        else:
+            context_object_features = object_features
+
         # Compute loss 
         token_ids, tokens, token_lens = model.cap_encoder.tokenize_batch(
             [data['caption']])
@@ -230,8 +235,13 @@ def main(exp_const,data_const,model_const):
     model.const = model_const
     model.object_encoder = ObjectEncoder(model.const.object_encoder)
     model.cap_encoder = CapEncoder(model.const.cap_encoder)
+    
+    o_dim = model.object_encoder.const.object_feature_dim
+    if exp_const.contextualize==True:
+        o_dim = model.object_encoder.const.context_layer.hidden_size
+    
     model.lang_sup_criterion = create_cap_info_nce_criterion(
-        model.object_encoder.const.context_layer.hidden_size,
+        o_dim,
         model.object_encoder.const.object_feature_dim,
         model.cap_encoder.model.config.hidden_size,
         model.cap_encoder.model.config.hidden_size//2)
@@ -247,7 +257,10 @@ def main(exp_const,data_const,model_const):
     model.lang_sup_criterion.cuda()
 
     print('Creating dataloader ...')
-    dataset = FlickrDataset(data_const)
+    FeatDataset = FlickrDataset
+    if exp_const.self_sup_feat==True:
+        FeatDataset = SelfSupFlickrDataset
+    dataset = FeatDataset(data_const)
 
     with torch.no_grad():
         recall = eval_model(model,dataset,exp_const)
