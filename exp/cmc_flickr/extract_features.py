@@ -6,10 +6,10 @@ from tqdm import tqdm
 import numpy as np
 from torch.utils.data import DataLoader
 
-from .dataset import COCODatasetConstants, COCODataset
+from .dataset import FlickrDatasetConstants, FlickrDataset
 from .models.resnet import MyResNetsCMC
 import utils.io as io
-from global_constants import misc_paths, coco_paths
+from global_constants import misc_paths, flickr_paths
 
 @click.command()
 @click.option(
@@ -28,8 +28,8 @@ def main(**kwargs):
     subset = kwargs['subset']
 
     print('Creating dataset ...')
-    const = COCODatasetConstants(subset)
-    dataset = COCODataset(const)
+    const = FlickrDatasetConstants(subset)
+    dataset = FlickrDataset(const)
     dataloader = DataLoader(
         dataset,
         batch_size=kwargs['batch_size'],
@@ -43,8 +43,8 @@ def main(**kwargs):
     
     print('Creating hdf5 file ...')
     filename = os.path.join(
-        coco_paths['local_proc_dir'],
-        coco_paths['extracted']['self_sup_feats'][subset])
+        flickr_paths['local_proc_dir'],
+        flickr_paths['self_sup_feats'][subset])
     feat_h5py = h5py.File(filename,'w')
     
     print('Extracting features ...')
