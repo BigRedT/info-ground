@@ -1,9 +1,9 @@
 export HDF5_USE_FILE_LOCKING=FALSE
 
 
-python -m exp.pretrain_coco_noun_negs.run.train \
-    --exp_name 'loss_wts_neg_noun_1_self_sup_1_lang_sup_1_no_context_self_sup_feat' \
-    --model_num -1 \
+python -m exp.pretrain_coco_noun_negs_sidetune.run.train \
+    --exp_name 'loss_wts_neg_noun_1_self_sup_1_lang_sup_1_no_context_self_sup_feat_sidetune' \
+    --model_num 32000 \
     --lr 1e-5 \
     --train_batch_size 50 \
     --neg_noun_loss_wt 1 \

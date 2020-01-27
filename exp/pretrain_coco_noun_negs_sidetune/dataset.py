@@ -71,7 +71,6 @@ class DetFeatDataset(Dataset):
             self.neg_noun_samples = io.load_json_object(
                 self.const.neg_noun_samples_json)
 
-        # transforms.ToTensor(),
         normalize = transforms.Normalize(
                 mean=[0.485, 0.456, 0.406],
                 std=[0.229, 0.224, 0.225])
@@ -227,9 +226,7 @@ class DetFeatDataset(Dataset):
             new_batch = {}
             for k in batch[0].keys():
                 batch_k = [sample[k] for sample in batch]
-                if k=='noun_verb_token_ids':
-                    new_batch[k] = batch_k
-                elif k=='boxes':
+                if k=='boxes':
                     new_batch[k] = [torch.FloatTensor(s) for s in batch_k]
                 else:
                     new_batch[k] = default_collate(batch_k)

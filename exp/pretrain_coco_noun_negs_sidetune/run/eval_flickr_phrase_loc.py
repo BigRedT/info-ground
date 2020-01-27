@@ -3,8 +3,8 @@ import click
 
 from utils.constants import Constants, ExpConstants
 from global_constants import coco_paths
-from exp.eval_flickr.dataset import  FlickrDatasetConstants
-from exp.eval_flickr.self_sup_dataset import SelfSupFlickrDatasetConstants
+from exp.eval_flickr.dataset_w_images import  FlickrDatasetConstants
+from exp.eval_flickr.self_sup_dataset_w_images import SelfSupFlickrDatasetConstants
 from ..models.object_encoder import ObjectEncoderConstants
 from ..models.cap_encoder import CapEncoderConstants
 from .. import eval_flickr_phrase_loc
@@ -60,6 +60,12 @@ def main(**kwargs):
         model_const.lang_sup_criterion_path = os.path.join(
             exp_const.model_dir,
             f'best_lang_sup_criterion')
+        model_const.sidenet_path = os.path.join(
+            exp_const.model_dir,
+            f'sidenet')
+        model_const.blender_path = os.path.join(
+            exp_const.model_dir,
+            f'blender')
     else:
         model_const.object_encoder_path = os.path.join(
             exp_const.model_dir,
@@ -67,6 +73,12 @@ def main(**kwargs):
         model_const.lang_sup_criterion_path = os.path.join(
             exp_const.model_dir,
             f'lang_sup_criterion_{model_const.model_num}')
+        model_const.sidenet_path = os.path.join(
+            exp_const.model_dir,
+            f'sidenet_{model_const.model_num}')
+        model_const.blender_path = os.path.join(
+            exp_const.model_dir,
+            f'blender_{model_const.model_num}')
 
     eval_flickr_phrase_loc.main(exp_const,data_const,model_const)
 

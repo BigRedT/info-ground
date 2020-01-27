@@ -12,9 +12,11 @@ import utils.io as io
 from utils.constants import save_constants, Constants
 from .models.object_encoder import ObjectEncoder
 from .models.cap_encoder import CapEncoder
+from .models.alpha_blender import AlphaBlender
+from .models.sidenet import SideNet
 from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
-from exp.eval_flickr.dataset import FlickrDataset
-from exp.eval_flickr.self_sup_dataset import SelfSupFlickrDataset
+from exp.eval_flickr.dataset_w_images import FlickrDataset
+from exp.eval_flickr.self_sup_dataset_w_images import SelfSupFlickrDataset
 from utils.bbox_utils import compute_iou, point_in_box, compute_center
 
 
@@ -147,6 +149,8 @@ def compute_pt_acc(pred_boxes,gt_boxes):
 def eval_model(model,dataset,exp_const):
     # Set mode
     model.object_encoder.eval()
+    model.sidenet.eval()
+    model.blender.eval()
     model.cap_encoder.eval()
     model.lang_sup_criterion.eval()
 
@@ -157,6 +161,17 @@ def eval_model(model,dataset,exp_const):
         # Forward pass
         object_features = torch.FloatTensor(data['features']).cuda().unsqueeze(0)
         pad_mask = torch.FloatTensor(data['pad_mask']).cuda().unsqueeze(0)
+        images = data['image'].cuda().unsqueeze(0) # Image is already a tensor
+        boxes = [torch.FloatTensor(data['scaled_boxes']).cuda()]
+
+        # Extract sidenet features
+        side_feats = model.sidenet(images,boxes)
+        side_feats = model.sidenet.pad_and_concat(
+            side_feats,
+            object_features.size(1))
+        object_features = model.blender(
+            object_features,
+            side_feats)
 
         if exp_const.contextualize==True:
             context_object_features, obj_obj_att = model.object_encoder(
@@ -235,6 +250,8 @@ def main(exp_const,data_const,model_const):
     model.const = model_const
     model.object_encoder = ObjectEncoder(model.const.object_encoder)
     model.cap_encoder = CapEncoder(model.const.cap_encoder)
+    model.sidenet = SideNet(out_dim=model.object_encoder.const.object_feature_dim)
+    model.blender = AlphaBlender()
     
     o_dim = model.object_encoder.const.object_feature_dim
     if exp_const.contextualize==True:
@@ -252,8 +269,14 @@ def main(exp_const,data_const,model_const):
             loaded_object_encoder['state_dict'])
         model.lang_sup_criterion.load_state_dict(
             torch.load(model.const.lang_sup_criterion_path)['state_dict'])
+        model.sidenet.load_state_dict(
+            torch.load(model.const.sidenet_path)['state_dict'])
+        model.blender.load_state_dict(
+            torch.load(model.const.blender_path)['state_dict'])
     model.object_encoder.cuda()
     model.cap_encoder.cuda()
+    model.sidenet.cuda()
+    model.blender.cuda()
     model.lang_sup_criterion.cuda()
 
     print('Creating dataloader ...')

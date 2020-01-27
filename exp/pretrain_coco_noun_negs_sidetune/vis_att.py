@@ -16,7 +16,10 @@ import utils.io as io
 from utils.constants import save_constants, Constants
 from .models.object_encoder import ObjectEncoder
 from .models.cap_encoder import CapEncoder
+from .models.sidenet import SideNet
+from .models.alpha_blender import AlphaBlender
 from .dataset import DetFeatDataset
+from .self_sup_dataset import SelfSupDetFeatDataset
 from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
 from utils.bbox_utils import vis_bbox, create_att
 from utils.html_writer import HtmlWriter
@@ -47,6 +50,8 @@ def create_cap_info_nce_criterion(o_dim,u_dim,w_dim,d):
 def eval_model(model,dataloader,exp_const):
     # Set mode
     model.object_encoder.eval()
+    model.sidenet.train()
+    model.blender.train()
     model.cap_encoder.eval()
     model.lang_sup_criterion.eval()
 
@@ -60,8 +65,26 @@ def eval_model(model,dataloader,exp_const):
         object_features = data['features'].cuda()
         object_mask = data['object_mask'].cuda()
         pad_mask = data['pad_mask'].cuda()
-        context_object_features = model.object_encoder(
-            object_features)
+        images = data['image'].cuda()
+        boxes = [b.cuda() for b in data['boxes']]
+
+        # Extract sidenet features
+        side_feats = model.sidenet(images,boxes)
+        side_feats = model.sidenet.pad_and_concat(
+            side_feats,
+            object_features.size(1))
+        object_features = model.blender(
+            object_features,
+            side_feats)
+        alpha = model.blender.sigmoid(model.blender.alpha_logit)
+
+        if exp_const.contextualize==True:
+            context_object_features, _ = model.object_encoder(
+                object_features,
+                object_mask,
+                pad_mask)
+        else:
+            context_object_features = object_features
         
         token_ids, tokens, token_lens = model.cap_encoder.tokenize_batch(
             data['caption'])
@@ -98,9 +121,11 @@ def eval_model(model,dataloader,exp_const):
 
         html_writer = HtmlWriter(os.path.join(vis_dir,'index.html'))
 
-        src_filename = os.path.join(
-            dataloader.dataset.const.image_dir,
-            image_name + '.jpg')
+        # src_filename = os.path.join(
+        #     dataloader.dataset.const.image_dir,
+        #     image_name + '.jpg')
+        src_filename = dataloader.dataset.get_image_path(
+            data['image_id'][0].item())
         img = skio.imread(src_filename)
 
         box_img = img
@@ -177,11 +202,19 @@ def main(exp_const,data_const,model_const):
     model.const = model_const
     model.object_encoder = ObjectEncoder(model.const.object_encoder)
     model.cap_encoder = CapEncoder(model.const.cap_encoder)
+    model.sidenet = SideNet(out_dim=model.object_encoder.const.object_feature_dim)
+    model.blender = AlphaBlender()
+
+    o_dim = model.object_encoder.const.object_feature_dim
+    if exp_const.contextualize==True:
+        o_dim = model.object_encoder.const.context_layer.hidden_size  
+    
     model.lang_sup_criterion = create_cap_info_nce_criterion(
-        model.object_encoder.const.context_layer.hidden_size,
+        o_dim,
         model.object_encoder.const.object_feature_dim,
         model.cap_encoder.model.config.hidden_size,
         model.cap_encoder.model.config.hidden_size//2)
+
     if model.const.model_num != -1:
         print('Loading model num',model.const.model_num,'...')
         loaded_object_encoder = torch.load(model.const.object_encoder_path)
@@ -190,17 +223,27 @@ def main(exp_const,data_const,model_const):
             loaded_object_encoder['state_dict'])
         model.lang_sup_criterion.load_state_dict(
             torch.load(model.const.lang_sup_criterion_path)['state_dict'])
+        model.sidenet.load_state_dict(
+            torch.load(model.const.sidenet_path)['state_dict'])
+        model.blender.load_state_dict(
+            torch.load(model.const.blender_path)['state_dict'])
     model.object_encoder.cuda()
     model.cap_encoder.cuda()
+    model.sidenet.cuda()
+    model.blender.cuda()
     model.lang_sup_criterion.cuda()
 
     print('Creating dataloader ...')
-    dataloaders = {}
-    dataset = DetFeatDataset(data_const)
+    FeatDataset = DetFeatDataset
+    if exp_const.self_sup_feat==True:
+        FeatDataset = SelfSupDetFeatDataset
+    
+    dataset = FeatDataset(data_const)
     dataloader = DataLoader(
         dataset,
         batch_size=1,
         shuffle=True,
-        num_workers=1)
+        num_workers=1,
+        collate_fn=dataset.get_collate_fn())
 
     eval_model(model,dataloader,exp_const)

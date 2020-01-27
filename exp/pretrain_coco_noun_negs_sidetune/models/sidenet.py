@@ -6,10 +6,11 @@ from torchvision.ops import roi_align
 from .resnet import resnet34
 
 class SideNet(nn.Module):
-    def __init__(self):
+    def __init__(self,out_dim=1024):
         super().__init__()
+        self.out_dim = out_dim
         self.cnn = resnet34(pretrained=True)
-        self.fc = nn.Linear(512,1024)
+        self.fc = nn.Linear(512,self.out_dim)
 
     def forward(self,x,list_boxes):
         w1 = x.size(-1) # 224

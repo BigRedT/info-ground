@@ -15,6 +15,8 @@ import utils.io as io
 from utils.constants import save_constants, Constants
 from .models.object_encoder import ObjectEncoder
 from .models.cap_encoder import CapEncoder
+from .models.sidenet import SideNet
+from .models.alpha_blender import AlphaBlender
 from .models.info_nce_loss import InfoNCE
 from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
 from .models.neg_noun_loss import compute_neg_noun_loss
@@ -49,6 +51,8 @@ def train_model(model,dataloaders,exp_const,tb_writer):
         {'params': model.object_encoder.parameters()},
         {'params': model.self_sup_criterion.parameters()},
         {'params': model.lang_sup_criterion.parameters()},
+        {'params': model.sidenet.parameters()},
+        {'params': model.blender.parameters()},
     ]
     if exp_const.optimizer == 'SGD':
         opt = optim.SGD(
@@ -72,6 +76,8 @@ def train_model(model,dataloaders,exp_const,tb_writer):
         for it,data in enumerate(dataloaders['train']):
             # Set mode
             model.object_encoder.train()
+            model.sidenet.train()
+            model.blender.train()
             model.self_sup_criterion.train()
             model.lang_sup_criterion.train()
 
@@ -79,6 +85,18 @@ def train_model(model,dataloaders,exp_const,tb_writer):
             object_features = data['features'].cuda()
             object_mask = data['object_mask'].cuda()
             pad_mask = data['pad_mask'].cuda()
+            images = data['image'].cuda()
+            boxes = [b.cuda() for b in data['boxes']]
+
+            # Extract sidenet features
+            side_feats = model.sidenet(images,boxes)
+            side_feats = model.sidenet.pad_and_concat(
+                side_feats,
+                object_features.size(1))
+            object_features = model.blender(
+                object_features,
+                side_feats)
+            alpha = model.blender.sigmoid(model.blender.alpha_logit)
 
             if exp_const.contextualize==True:
                 context_object_features, _ = model.object_encoder(
@@ -144,6 +162,7 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                     'Neg_Noun_Loss/Train': neg_noun_loss.item(),
                     'Loss/Train': loss.item(),
                     'Lr': exp_const.lr,
+                    'Alpha': alpha.item(),
                 }
 
                 log_str = f'Epoch: {epoch} | Iter: {it} | Step: {step} | '
@@ -159,6 +178,8 @@ def train_model(model,dataloaders,exp_const,tb_writer):
             if step%exp_const.model_save_step==0:
                 save_items = {
                     'object_encoder': model.object_encoder,
+                    'sidenet': model.sidenet,
+                    'blender': model.blender,
                     'self_sup_criterion': model.self_sup_criterion,
                     'lang_sup_criterion': model.lang_sup_criterion,
                 }
@@ -187,7 +208,7 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                     'Self_Sup_Loss/Val': eval_results['self_sup_loss'],
                     'Lang_Sup_Loss/Val': eval_results['lang_sup_loss'],
                     'Neg_Noun_Loss/Val': eval_results['neg_noun_loss'],
-                    'Loss/Val': eval_results['total_loss']
+                    'Loss/Val': eval_results['total_loss'],
                 }
                 
                 for name,value in log_items.items():
@@ -198,6 +219,8 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                     print(f'Saving best model at {step} ...')
                     save_items = {
                         'best_object_encoder': model.object_encoder,
+                        'sidenet': model.sidenet,
+                        'blender': model.blender,
                         'best_self_sup_criterion': model.self_sup_criterion,
                         'best_lang_sup_criterion': model.lang_sup_criterion,
                     }
@@ -221,6 +244,8 @@ def train_model(model,dataloaders,exp_const,tb_writer):
 def eval_model(model,dataloader,exp_const,step):
     # Set mode
     model.object_encoder.eval()
+    model.sidenet.eval()
+    model.blender.eval()
     model.self_sup_criterion.eval()
     model.lang_sup_criterion.eval()
 
@@ -237,6 +262,17 @@ def eval_model(model,dataloader,exp_const,step):
         object_features = data['features'].cuda()
         object_mask = data['object_mask'].cuda()
         pad_mask = data['pad_mask'].cuda()
+        images = data['image'].cuda()
+        boxes = [b.cuda() for b in data['boxes']]
+
+        # Extract sidenet features
+        side_feats = model.sidenet(images,boxes)
+        side_feats = model.sidenet.pad_and_concat(
+            side_feats,
+            object_features.size(1))
+        object_features = model.blender(
+            object_features,
+            side_feats)
 
         if exp_const.contextualize==True:
             context_object_features, _ = model.object_encoder(
@@ -333,10 +369,13 @@ def main(exp_const,data_const,model_const):
     model.const = model_const
     model.object_encoder = ObjectEncoder(model.const.object_encoder)
     model.cap_encoder = CapEncoder(model.const.cap_encoder)
+    model.sidenet = SideNet(out_dim=model.object_encoder.const.object_feature_dim)
+    model.blender = AlphaBlender()
 
     c_dim = model.object_encoder.const.object_feature_dim
     if exp_const.contextualize==True:
         c_dim = model.object_encoder.const.context_layer.hidden_size
+    
     model.self_sup_criterion = create_info_nce_criterion(
         model.object_encoder.const.object_feature_dim,
         c_dim,
@@ -344,13 +383,14 @@ def main(exp_const,data_const,model_const):
     
     o_dim = model.object_encoder.const.object_feature_dim
     if exp_const.contextualize==True:
-        o_dim = model.object_encoder.const.context_layer.hidden_size
+        o_dim = model.object_encoder.const.context_layer.hidden_size   
     
     model.lang_sup_criterion = create_cap_info_nce_criterion(
         o_dim,
         model.object_encoder.const.object_feature_dim,
         model.cap_encoder.model.config.hidden_size,
         model.cap_encoder.model.config.hidden_size//2)
+    
     if model.const.model_num != -1:
         model.object_encoder.load_state_dict(
             torch.load(model.const.object_encoder_path)['state_dict'])
@@ -358,8 +398,14 @@ def main(exp_const,data_const,model_const):
             torch.load(model.const.self_sup_criterion_path)['state_dict'])
         model.lang_sup_criterion.load_state_dict(
             torch.load(model.const.lang_sup_criterion_path)['state_dict'])
+        model.sidenet.load_state_dict(
+            torch.load(model.const.sidenet_path)['state_dict'])
+        model.blender.load_state_dict(
+            torch.load(model.const.blender_path)['state_dict'])
     model.object_encoder.cuda()
     model.cap_encoder.cuda()
+    model.sidenet.cuda()
+    model.blender.cuda()
     model.self_sup_criterion.cuda()
     model.lang_sup_criterion.cuda()
     model.object_encoder.to_file(
@@ -389,6 +435,7 @@ def main(exp_const,data_const,model_const):
             dataset,
             batch_size=batch_size,
             shuffle=shuffle,
-            num_workers=exp_const.num_workers)
+            num_workers=exp_const.num_workers,
+            collate_fn=dataset.get_collate_fn())
 
     train_model(model,dataloaders,exp_const,tb_writer)

@@ -1,7 +1,10 @@
 import os
 import numpy as np
 import random
+from PIL import Image
 from copy import deepcopy
+import torch
+from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
 
@@ -15,6 +18,8 @@ class SelfSupDetFeatDatasetConstants(Constants):
         super().__init__()
         self.subset = subset
         self.subset_image_dirname = coco_paths['extracted']['images'][subset]
+
+        self.image_dir = coco_paths['image_dir']
 
         # Detected regions, features, labels, scores
         self.det_dir = os.path.join(
@@ -54,6 +59,8 @@ class SelfSupDetFeatDatasetConstants(Constants):
         self.num_neg_nouns = 25
         self.neg_noun_feat_dim = 768
 
+        self.image_size = [224,224]
+
 
 class SelfSupDetFeatDataset(Dataset):
     def __init__(self,const):
@@ -68,12 +75,29 @@ class SelfSupDetFeatDataset(Dataset):
             self.neg_noun_samples = io.load_json_object(
                 self.const.neg_noun_samples_json)
 
+        normalize = transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225])
+        self.transforms = transforms.Compose([
+            transforms.Resize(self.const.image_size),
+            transforms.ToTensor(),
+            normalize])
         os.environ['HDF5_USE_FILE_LOCKING']="FALSE"
         
     def get_image_name(self,subset,image_id):
         image_id = str(image_id).zfill(12)
         return f'COCO_{self.const.subset_image_dirname}_{image_id}'
-        
+    
+    def get_image_path(self,image_id):
+        image_name = self.get_image_name(self.const.subset,image_id)
+        return os.path.join(
+            os.path.join(self.const.image_dir,self.const.subset_image_dirname),
+            f'{image_name}.jpg')
+    
+    def read_image(self,img_path):
+        image = Image.open(img_path).convert(mode='RGB') # PIL image
+        return image
+
     def __len__(self):
         return len(self.annos['annotations'])
 
@@ -96,6 +120,17 @@ class SelfSupDetFeatDataset(Dataset):
         f = io.load_h5py_object(self.const.boxes_hdf5)
         boxes = f[image_name][()]
         f.close()
+        return boxes
+    
+    def scale_boxes(self,boxes,H,W,h,w):
+        """
+        H,W: original image size
+        h,w: image size to which to scale the boxes
+        """
+        for i in [0,2]:
+            boxes[:,i] = boxes[:,i]*w/W
+            boxes[:,i+1] = boxes[:,i+1]*h/H
+
         return boxes
 
     def pad_object_features(self,features):
@@ -162,6 +197,12 @@ class SelfSupDetFeatDataset(Dataset):
         cap_id = anno['id']
         caption = anno['caption']
         image_name = self.get_image_name(self.const.subset,anno['image_id'])
+        image_path = self.get_image_path(image_id)
+        image = self.read_image(image_path)
+        W,H = image.size
+        image = self.transforms(image)
+        boxes = self.read_boxes(image_name)
+        boxes = self.scale_boxes(boxes,H,W,28,28)
         features = self.read_object_features(image_name)
         self_sup_features = self.read_self_sup_features(image_name)
         if self_sup_features is None:
@@ -182,6 +223,8 @@ class SelfSupDetFeatDataset(Dataset):
             'num_objects': num_objects,
             'object_mask': object_mask,
             'pad_mask': pad_mask,
+            'image': image,
+            'boxes': boxes,
         }
         
         if self.const.read_noun_verb_tokens is True:
@@ -202,22 +245,25 @@ class SelfSupDetFeatDataset(Dataset):
             new_batch = {}
             for k in batch[0].keys():
                 batch_k = [sample[k] for sample in batch]
-                if k=='noun_verb_token_ids':
-                    new_batch[k] = batch_k
+                if k=='boxes':
+                    new_batch[k] = [torch.FloatTensor(s) for s in batch_k]
                 else:
-                    new_batch[k] = default_collate(batch_k)
+                    try:
+                        new_batch[k] = default_collate(batch_k)
+                    except:
+                        import pdb; pdb.set_trace()
             
             return new_batch
         
         return collate_fn
 
 if __name__=='__main__':
-    const = DetFeatDatasetConstants('val')
-    dataset = DetFeatDataset(const)
+    const = SelfSupDetFeatDatasetConstants('val')
+    dataset = SelfSupDetFeatDataset(const)
     print(len(dataset))
     dataloader = DataLoader(
         dataset,
-        5,
+        50,
         num_workers=0,
         collate_fn=dataset.get_collate_fn())
     for data in dataloader:

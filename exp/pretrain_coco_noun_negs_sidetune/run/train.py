@@ -106,6 +106,12 @@ def main(**kwargs):
     model_const.lang_sup_criterion_path = os.path.join(
         exp_const.model_dir,
         f'lang_sup_criterion_{model_const.model_num}')
+    model_const.blender_path = os.path.join(
+        exp_const.model_dir,
+        f'blender_{model_const.model_num}')
+    model_const.sidenet_path = os.path.join(
+        exp_const.model_dir,
+        f'sidenet_{model_const.model_num}')
 
     train(exp_const,data_const,model_const)
 
