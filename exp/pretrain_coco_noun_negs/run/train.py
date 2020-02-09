@@ -67,8 +67,8 @@ def main(**kwargs):
     exp_const.momentum = None
     exp_const.num_epochs = 10
     exp_const.log_step = 20
-    exp_const.model_save_step = 8000 # 400000/50
-    exp_const.val_step = 4000
+    exp_const.model_save_step = 400000//kwargs['train_batch_size'] # 8000=400000/50
+    exp_const.val_step = exp_const.model_save_step//2
     exp_const.num_val_samples = None
     exp_const.train_batch_size = kwargs['train_batch_size']
     exp_const.val_batch_size = 20

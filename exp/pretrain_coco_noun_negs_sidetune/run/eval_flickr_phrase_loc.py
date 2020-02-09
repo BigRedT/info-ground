@@ -31,12 +31,18 @@ from .. import eval_flickr_phrase_loc
     '--self_sup_feat',
     is_flag=True,
     help='Apply flag to use self-supervised features')
+@click.option(
+    '--drop_prob',
+    default=0.2,
+    type=float,
+    help='Dropout probability for sidenet features')
 def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.model_dir = os.path.join(exp_const.exp_dir,'models')
     exp_const.seed = 0
     exp_const.contextualize = not kwargs['no_context']
     exp_const.self_sup_feat = kwargs['self_sup_feat']
+    exp_const.drop_prob = kwargs['drop_prob']
 
     DatasetConstants = FlickrDatasetConstants
     if exp_const.self_sup_feat==True:

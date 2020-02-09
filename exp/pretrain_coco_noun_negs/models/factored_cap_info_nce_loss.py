@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import numpy as np
 
 import utils.io as io
 
@@ -16,6 +17,38 @@ class KVIdentity(nn.Module,io.WritableToFile):
         return K,V
 
 
+class MaxAttDropout(nn.Module,io.WritableToFile):
+    def __init__(self,prob=0.5,k=3):
+        super().__init__()
+        self.prob = prob
+        self.k = k
+
+    def forward(self,att_logits):
+        """
+        att_logits: BwxBoxTwxTox1
+        """
+        if self.training is False:
+            return att_logits
+
+        _,ids = torch.topk(att_logits,k=self.k,dim=3)
+        Bw,Bo,Tw,K,_ = ids.size()
+        mask = np.random.uniform(size=(Bw,Bo,Tw,K,1))
+        mask = mask < self.prob
+        mask = -10000*mask.astype(np.float32)
+        mask = torch.FloatTensor(mask).cuda()
+        att_to_add = torch.zeros_like(att_logits)
+        att_to_add.scatter_(3,ids,src=mask)
+        
+        # Bw,Bo,Tw,K,_ = ids.size()
+        # mask = np.random.uniform(size=(Bw,Bo,Tw,K))
+        # to_drop = np.argwhere(mask < self.prob)
+        # for bw,bo,tw,k in to_drop:
+        #     att_to_add[bw,bo,tw,ids[bw,bo,tw,k,0],0] = -10000
+
+        att_logits = att_logits + att_to_add
+        return att_logits
+
+
 class CapInfoNCE(nn.Module,io.WritableToFile):
     def __init__(self,fo=None,fw=None,ku=None,kw=None):
         super().__init__()
@@ -23,6 +56,7 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
         self.fw = fw
         self.ku = ku
         self.kw = kw
+        #self.mad_layer = MaxAttDropout()
         
     def forward(self,o,u,w,mask):
         """
@@ -51,6 +85,7 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
         Ku = Ku.unsqueeze(1) # Box1xToxD
         att = torch.sum(Kw*Ku,4,keepdim=True) # BwxBoxTwxTox1
         att = att / torch.sqrt(torch.tensor(D).float()) # BwxBoxTwxTox1
+        #att = self.mad_layer(att)
         att = F.softmax(att,3)
         
         # Compute values from contextualized object features

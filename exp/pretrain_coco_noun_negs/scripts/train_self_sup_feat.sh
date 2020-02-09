@@ -1,16 +1,27 @@
 export HDF5_USE_FILE_LOCKING=FALSE
 
 
-python -m exp.pretrain_coco_noun_negs.run.train \
-    --exp_name 'loss_wts_neg_noun_1_self_sup_1_lang_sup_1_no_context_self_sup_feat' \
-    --model_num -1 \
-    --lr 1e-5 \
-    --train_batch_size 50 \
-    --neg_noun_loss_wt 1 \
-    --self_sup_loss_wt 1 \
-    --lang_sup_loss_wt 1 \
-    --no_context \
-    --self_sup_feat
+# python -m exp.pretrain_coco_noun_negs.run.train \
+#     --exp_name 'loss_wts_neg_noun_1_self_sup_1_lang_sup_1_no_context_self_sup_feat_mad_0.5' \
+#     --model_num -1 \
+#     --lr 1e-5 \
+#     --train_batch_size 50 \
+#     --neg_noun_loss_wt 1 \
+#     --self_sup_loss_wt 1 \
+#     --lang_sup_loss_wt 1 \
+#     --no_context \
+#     --self_sup_feat
+
+# python -m exp.pretrain_coco_noun_negs.run.train \
+#     --exp_name 'loss_wts_neg_noun_1_self_sup_1_lang_sup_1_no_context_self_sup_feat_batch_100' \
+#     --model_num -1 \
+#     --lr 1e-5 \
+#     --train_batch_size 100 \
+#     --neg_noun_loss_wt 1 \
+#     --self_sup_loss_wt 1 \
+#     --lang_sup_loss_wt 1 \
+#     --no_context \
+#     --self_sup_feat
 
 # python -m exp.pretrain_coco_noun_negs.run.train \
 #     --exp_name 'loss_wts_neg_noun_1_self_sup_1_lang_sup_1' \

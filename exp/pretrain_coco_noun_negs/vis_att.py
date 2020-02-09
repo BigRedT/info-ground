@@ -17,6 +17,7 @@ from utils.constants import save_constants, Constants
 from .models.object_encoder import ObjectEncoder
 from .models.cap_encoder import CapEncoder
 from .dataset import DetFeatDataset
+from .self_sup_dataset import SelfSupDetFeatDataset
 from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
 from utils.bbox_utils import vis_bbox, create_att
 from utils.html_writer import HtmlWriter
@@ -60,8 +61,12 @@ def eval_model(model,dataloader,exp_const):
         object_features = data['features'].cuda()
         object_mask = data['object_mask'].cuda()
         pad_mask = data['pad_mask'].cuda()
-        context_object_features = model.object_encoder(
-            object_features)
+
+        if exp_const.contextualize==True:
+            context_object_features, _ = model.object_encoder(
+                object_features)
+        else:
+            context_object_features = object_features
         
         token_ids, tokens, token_lens = model.cap_encoder.tokenize_batch(
             data['caption'])
@@ -177,11 +182,17 @@ def main(exp_const,data_const,model_const):
     model.const = model_const
     model.object_encoder = ObjectEncoder(model.const.object_encoder)
     model.cap_encoder = CapEncoder(model.const.cap_encoder)
+    
+    o_dim = model.object_encoder.const.object_feature_dim
+    if exp_const.contextualize==True:
+        o_dim = model.object_encoder.const.context_layer.hidden_size  
+    
     model.lang_sup_criterion = create_cap_info_nce_criterion(
-        model.object_encoder.const.context_layer.hidden_size,
+        o_dim,
         model.object_encoder.const.object_feature_dim,
         model.cap_encoder.model.config.hidden_size,
         model.cap_encoder.model.config.hidden_size//2)
+
     if model.const.model_num != -1:
         print('Loading model num',model.const.model_num,'...')
         loaded_object_encoder = torch.load(model.const.object_encoder_path)
@@ -195,8 +206,11 @@ def main(exp_const,data_const,model_const):
     model.lang_sup_criterion.cuda()
 
     print('Creating dataloader ...')
-    dataloaders = {}
-    dataset = DetFeatDataset(data_const)
+    FeatDataset = DetFeatDataset
+    if exp_const.self_sup_feat==True:
+        FeatDataset = SelfSupDetFeatDataset
+
+    dataset = FeatDataset(data_const)
     dataloader = DataLoader(
         dataset,
         batch_size=1,

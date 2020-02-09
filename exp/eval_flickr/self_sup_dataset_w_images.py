@@ -39,7 +39,7 @@ class SelfSupFlickrDatasetConstants(Constants):
             flickr_paths['local_proc_dir'],
             flickr_paths['self_sup_feats'][subset])
 
-        self.max_objects = 15        
+        self.max_objects = 15 # set to 30 for final exps        
 
         self.image_size = [224,224]
 

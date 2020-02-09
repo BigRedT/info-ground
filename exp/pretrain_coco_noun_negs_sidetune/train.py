@@ -111,6 +111,9 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                 object_features,
                 context_object_features,
                 object_mask)
+            
+            # Compute side norm loss
+            side_feat_norm_loss = side_feats.pow(2).sum(2).mean()
 
             # Compute cap-image loss
             with torch.no_grad():
@@ -148,7 +151,8 @@ def train_model(model,dataloaders,exp_const,tb_writer):
 
             loss = exp_const.self_sup_loss_wt*self_sup_loss + \
                 exp_const.lang_sup_loss_wt*lang_sup_loss + \
-                exp_const.neg_noun_loss_wt*neg_noun_loss
+                exp_const.neg_noun_loss_wt*neg_noun_loss + \
+                1e-2*side_feat_norm_loss
 
             # Backward pass
             opt.zero_grad()
@@ -160,6 +164,7 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                     'Self_Sup_Loss/Train': self_sup_loss.item(),
                     'Lang_Sup_Loss/Train': lang_sup_loss.item(),
                     'Neg_Noun_Loss/Train': neg_noun_loss.item(),
+                    'Side_Feat_Norm_Loss/Train': side_feat_norm_loss.item(),
                     'Loss/Train': loss.item(),
                     'Lr': exp_const.lr,
                     'Alpha': alpha.item(),
@@ -208,6 +213,7 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                     'Self_Sup_Loss/Val': eval_results['self_sup_loss'],
                     'Lang_Sup_Loss/Val': eval_results['lang_sup_loss'],
                     'Neg_Noun_Loss/Val': eval_results['neg_noun_loss'],
+                    'Side_Feat_Norm_Loss/Val': eval_results['side_feat_norm_loss'],
                     'Loss/Val': eval_results['total_loss'],
                 }
                 
@@ -252,6 +258,7 @@ def eval_model(model,dataloader,exp_const,step):
     avg_self_sup_loss = 0
     avg_lang_sup_loss = 0
     avg_neg_noun_loss = 0
+    avg_side_feat_norm_loss = 0
     num_samples = 0
     for it,data in enumerate(tqdm(dataloader)):
         if (exp_const.num_val_samples is not None) and \
@@ -287,6 +294,9 @@ def eval_model(model,dataloader,exp_const,step):
             object_features,
             context_object_features,
             object_mask)  
+
+        # Compute side norm loss
+        side_feat_norm_loss = side_feats.pow(2).sum(2).mean()
 
         token_ids, tokens, token_lens = model.cap_encoder.tokenize_batch(
             data['caption'])
@@ -325,18 +335,22 @@ def eval_model(model,dataloader,exp_const,step):
         avg_self_sup_loss += (self_sup_loss.item()*batch_size)
         avg_lang_sup_loss += (lang_sup_loss.item()*batch_size)
         avg_neg_noun_loss += (neg_noun_loss.item()*batch_size)
+        avg_side_feat_norm_loss += (side_feat_norm_loss.item()*batch_size)
 
     avg_self_sup_loss = avg_self_sup_loss / num_samples
     avg_lang_sup_loss = avg_lang_sup_loss / num_samples
     avg_neg_noun_loss = avg_neg_noun_loss / num_samples
+    avg_side_feat_norm_loss = avg_side_feat_norm_loss / num_samples
     total_loss = exp_const.self_sup_loss_wt*avg_self_sup_loss + \
         exp_const.lang_sup_loss_wt*avg_lang_sup_loss + \
-        exp_const.neg_noun_loss_wt*avg_neg_noun_loss
+        exp_const.neg_noun_loss_wt*avg_neg_noun_loss + \
+        1e-2*avg_side_feat_norm_loss
 
     eval_results = {
         'self_sup_loss': avg_self_sup_loss, 
         'lang_sup_loss': avg_lang_sup_loss,
         'neg_noun_loss': avg_neg_noun_loss,
+        'side_feat_norm_loss': avg_side_feat_norm_loss,
         'total_loss': total_loss,
     }
 
@@ -370,7 +384,7 @@ def main(exp_const,data_const,model_const):
     model.object_encoder = ObjectEncoder(model.const.object_encoder)
     model.cap_encoder = CapEncoder(model.const.cap_encoder)
     model.sidenet = SideNet(out_dim=model.object_encoder.const.object_feature_dim)
-    model.blender = AlphaBlender()
+    model.blender = AlphaBlender(drop_prob=exp_const.drop_prob)
 
     c_dim = model.object_encoder.const.object_feature_dim
     if exp_const.contextualize==True:

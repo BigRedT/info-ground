@@ -35,7 +35,7 @@ class SelfSupFlickrDatasetConstants(Constants):
             flickr_paths['local_proc_dir'],
             flickr_paths['self_sup_feats'][subset])
 
-        self.max_objects = 15        
+        self.max_objects = 15     
 
 
 class SelfSupFlickrDataset(Dataset):

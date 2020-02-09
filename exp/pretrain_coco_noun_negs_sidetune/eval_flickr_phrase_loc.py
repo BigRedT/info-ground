@@ -251,7 +251,7 @@ def main(exp_const,data_const,model_const):
     model.object_encoder = ObjectEncoder(model.const.object_encoder)
     model.cap_encoder = CapEncoder(model.const.cap_encoder)
     model.sidenet = SideNet(out_dim=model.object_encoder.const.object_feature_dim)
-    model.blender = AlphaBlender()
+    model.blender = AlphaBlender(drop_prob=exp_const.drop_prob)
     
     o_dim = model.object_encoder.const.object_feature_dim
     if exp_const.contextualize==True:

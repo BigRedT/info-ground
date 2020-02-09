@@ -50,6 +50,11 @@ from ..train import main as train
     type=float,
     help='Weight for language supervision loss')
 @click.option(
+    '--drop_prob',
+    default=0.2,
+    type=float,
+    help='Dropout probability for sidenet features')
+@click.option(
     '--no_context',
     is_flag=True,
     help='Apply flag to switch off contextualization')
@@ -79,6 +84,7 @@ def main(**kwargs):
     exp_const.lang_sup_loss_wt = kwargs['lang_sup_loss_wt']
     exp_const.contextualize = not kwargs['no_context']
     exp_const.self_sup_feat = kwargs['self_sup_feat']
+    exp_const.drop_prob = kwargs['drop_prob']
     
     DatasetConstants = DetFeatDatasetConstants
     if exp_const.self_sup_feat==True:
