@@ -4,7 +4,7 @@ sent_dir: /shared/rsaas/tgupta6/Data/context-regions/flickr30k_downloads/Sentenc
 proc_dir: /shared/rsaas/tgupta6/Data/context-regions/flickr30k_proc
 local_proc_dir: /data/tgupta6/context-regions/flickr30k_proc
 image_dir: /data/tgupta6/context-regions/flickr30k_images
-det_dir: /data/tgupta6/context-regions/flickr30k_proc/detections
+det_dir: /data/tgupta6/context-regions/flickr30k_proc/bottomup_flickr_detections
 
 # Files in proc_dir
 subsets:

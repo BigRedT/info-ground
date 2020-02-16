@@ -4,6 +4,7 @@ proc_dir: /shared/rsaas/tgupta6/Data/context-regions/coco_proc
 exp_dir: /shared/rsaas/tgupta6/Data/context-regions/coco_exp
 image_dir: /data/tgupta6/context-regions/coco_images
 local_proc_dir: /data/tgupta6/context-regions/coco_proc
+det_dir: /data/tgupta6/context-regions/coco_proc/bottomup_coco_detections
 
 # Urls to download data from
 urls:

@@ -93,8 +93,9 @@ def main(**kwargs):
     model_const.model_num = kwargs['model_num']
     model_const.object_encoder = ObjectEncoderConstants()
     model_const.object_encoder.context_layer.output_attentions = True
+    model_const.object_encoder.object_feature_dim = 2048
     if exp_const.self_sup_feat==True:
-        model_const.object_encoder.object_feature_dim = 1024 + 256
+        model_const.object_encoder.object_feature_dim = 2048 + 256
     model_const.cap_encoder = CapEncoderConstants()
     model_const.cap_encoder.output_attentions = True
     model_const.object_encoder_path = os.path.join(

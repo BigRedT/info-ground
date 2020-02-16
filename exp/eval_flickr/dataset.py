@@ -31,7 +31,7 @@ class FlickrDatasetConstants(Constants):
         self.labels_hdf5 = os.path.join(self.det_dir,'labels.hdf5')
         self.scores_hdf5 = os.path.join(self.det_dir,'scores.hdf5')
 
-        self.max_objects = 15        
+        self.max_objects = 50        
 
 
 class FlickrDataset(Dataset):

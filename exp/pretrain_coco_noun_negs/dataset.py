@@ -18,8 +18,8 @@ class DetFeatDatasetConstants(Constants):
 
         # Detected regions, features, labels, scores
         self.det_dir = os.path.join(
-            coco_paths['local_proc_dir'],
-            f'detections/{subset}')
+            coco_paths['det_dir'],
+            subset)
         self.boxes_hdf5 = os.path.join(self.det_dir,'boxes.hdf5')
         self.features_hdf5 = os.path.join(self.det_dir,'features.hdf5')
         self.labels_hdf5 = os.path.join(self.det_dir,'labels.hdf5')
