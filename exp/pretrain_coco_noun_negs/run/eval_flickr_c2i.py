@@ -1,14 +1,13 @@
 import os
 import click
 
-import utils.io as io
 from utils.constants import Constants, ExpConstants
 from global_constants import coco_paths
 from exp.eval_flickr.dataset import  FlickrDatasetConstants
 from exp.eval_flickr.self_sup_dataset import SelfSupFlickrDatasetConstants
 from ..models.object_encoder import ObjectEncoderConstants
 from ..models.cap_encoder import CapEncoderConstants
-from .. import eval_flickr_phrase_loc
+from .. import eval_flickr_c2i
 
 @click.command()
 @click.option(
@@ -32,10 +31,6 @@ from .. import eval_flickr_phrase_loc
     '--self_sup_feat',
     is_flag=True,
     help='Apply flag to use self-supervised features')
-@click.option(
-    '--subset',
-    default='test',
-    help='subset to run evaluation on')
 def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.model_dir = os.path.join(exp_const.exp_dir,'models')
@@ -47,7 +42,7 @@ def main(**kwargs):
     if exp_const.self_sup_feat==True:
         DatasetConstants = SelfSupFlickrDatasetConstants
 
-    data_const = DatasetConstants(kwargs['subset'])
+    data_const = DatasetConstants('test')
 
     model_const = Constants()
     model_const.model_num = kwargs['model_num']
@@ -60,21 +55,21 @@ def main(**kwargs):
     model_const.cap_encoder.output_attentions = True
 
     if model_const.model_num==-100:
-        filename = os.path.join(
-            exp_const.exp_dir,
-            f'results_val_best.json')
-        results = io.load_json_object(filename)
-        model_const.model_num = results['model_num']
-        print('Selected model num:',model_const.model_num)
+        model_const.object_encoder_path = os.path.join(
+            exp_const.model_dir,
+            f'best_object_encoder')
+        model_const.lang_sup_criterion_path = os.path.join(
+            exp_const.model_dir,
+            f'best_lang_sup_criterion')
+    else:
+        model_const.object_encoder_path = os.path.join(
+            exp_const.model_dir,
+            f'object_encoder_{model_const.model_num}')
+        model_const.lang_sup_criterion_path = os.path.join(
+            exp_const.model_dir,
+            f'lang_sup_criterion_{model_const.model_num}')
 
-    model_const.object_encoder_path = os.path.join(
-        exp_const.model_dir,
-        f'object_encoder_{model_const.model_num}')
-    model_const.lang_sup_criterion_path = os.path.join(
-        exp_const.model_dir,
-        f'lang_sup_criterion_{model_const.model_num}')
-
-    eval_flickr_phrase_loc.main(exp_const,data_const,model_const)
+    eval_flickr_c2i.main(exp_const,data_const,model_const)
 
 
 if __name__=='__main__':

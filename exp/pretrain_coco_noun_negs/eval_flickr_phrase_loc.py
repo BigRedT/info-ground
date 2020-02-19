@@ -151,6 +151,7 @@ def eval_model(model,dataset,exp_const):
     model.lang_sup_criterion.eval()
 
     pt_recalled_phrases = 0
+    Ks = [1,5,10]
     recalled_phrases = [0]*3
     num_phrases = 0
     for it,data in enumerate(tqdm(dataset)):
@@ -190,7 +191,7 @@ def eval_model(model,dataset,exp_const):
                 combined_tokens)
 
             phrase_att = combine_att(token_obj_att,phrase_token_ids)
-            pred_boxes = select_boxes(data['boxes'],phrase_att)
+            pred_boxes = select_boxes(data['boxes'],phrase_att,k=Ks[-1])
             
             phrase_id = phrase_info['phrase_id']
             if phrase_id not in data['gt_boxes']['boxes']:
@@ -201,10 +202,10 @@ def eval_model(model,dataset,exp_const):
             is_recalled, pred_box, gt_box = compute_recall(
                 pred_boxes,
                 gt_phrase_boxes,
-                k=3)
-
-            for k in range(3):
-                recalled_phrases[k] += is_recalled[k]
+                k=Ks[-1])
+        
+            for i in range(3):
+                recalled_phrases[i] += is_recalled[Ks[i]-1]
             
             is_pt_recalled = compute_pt_acc(pred_boxes,gt_phrase_boxes)
             pt_recalled_phrases += is_pt_recalled
@@ -219,9 +220,17 @@ def eval_model(model,dataset,exp_const):
     
     recall = [round(100*rp/num_phrases,2) for rp in recalled_phrases]
     pt_recall = round(100*pt_recalled_phrases / num_phrases,2)
-    print(recall,pt_recall)
+    results = {
+        'recall': {},
+        'pt_recall': None
+    }
+    for i,k in enumerate(Ks):
+        results['recall'][k] = recall[i]
+    
+    results['pt_recall'] = pt_recall
+    print(results)
 
-    return recall
+    return results
 
 
 def main(exp_const,data_const,model_const):
@@ -263,6 +272,9 @@ def main(exp_const,data_const,model_const):
     dataset = FeatDataset(data_const)
 
     with torch.no_grad():
-        recall = eval_model(model,dataset,exp_const)
+        results = eval_model(model,dataset,exp_const)
 
-    #print(eval_results)
+    filename = os.path.join(
+        exp_const.exp_dir,
+        f'results_{data_const.subset}_{model_const.model_num}.json')
+    io.dump_json_object(results,filename)

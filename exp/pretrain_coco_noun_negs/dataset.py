@@ -29,7 +29,7 @@ class DetFeatDatasetConstants(Constants):
         self.annos_json = os.path.join(
             coco_paths['proc_dir'],
             coco_paths['extracted']['annos']['captions'][subset])
-        self.max_objects = 15
+        self.max_objects = 30
         self.mask_prob = 0.2
 
         # Noun and verb tokens in captions for MI training

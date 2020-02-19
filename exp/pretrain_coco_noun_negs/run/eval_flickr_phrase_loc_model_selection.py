@@ -1,4 +1,5 @@
 import os
+import glob
 import click
 
 import utils.io as io
@@ -10,6 +11,15 @@ from ..models.object_encoder import ObjectEncoderConstants
 from ..models.cap_encoder import CapEncoderConstants
 from .. import eval_flickr_phrase_loc
 
+
+def find_all_model_numbers(model_dir):
+    model_nums = []
+    for name in glob.glob(f'{model_dir}/lang_sup_criterion*'):
+        model_nums.append(int(name.split('_')[-1]))
+
+    return sorted(model_nums)
+
+
 @click.command()
 @click.option(
     '--exp_name',
@@ -20,11 +30,6 @@ from .. import eval_flickr_phrase_loc
     default=coco_paths['exp_dir'],
     help='Output directory where a folder would be created for each experiment')
 @click.option(
-    '--model_num',
-    default=-1,
-    type=int,
-    help='Model number. -1 implies begining of training. -100 means best')
-@click.option(
     '--no_context',
     is_flag=True,
     help='Apply flag to switch off contextualization')
@@ -34,7 +39,7 @@ from .. import eval_flickr_phrase_loc
     help='Apply flag to use self-supervised features')
 @click.option(
     '--subset',
-    default='test',
+    default='val',
     help='subset to run evaluation on')
 def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
@@ -50,7 +55,6 @@ def main(**kwargs):
     data_const = DatasetConstants(kwargs['subset'])
 
     model_const = Constants()
-    model_const.model_num = kwargs['model_num']
     model_const.object_encoder = ObjectEncoderConstants()
     model_const.object_encoder.context_layer.output_attentions = True
     model_const.object_encoder.object_feature_dim = 2048
@@ -59,22 +63,44 @@ def main(**kwargs):
     model_const.cap_encoder = CapEncoderConstants()
     model_const.cap_encoder.output_attentions = True
 
-    if model_const.model_num==-100:
+    model_nums = find_all_model_numbers(exp_const.model_dir)
+    # for num in model_nums:
+    #     model_const.model_num = num
+    #     model_const.object_encoder_path = os.path.join(
+    #         exp_const.model_dir,
+    #         f'object_encoder_{model_const.model_num}')
+    #     model_const.lang_sup_criterion_path = os.path.join(
+    #         exp_const.model_dir,
+    #         f'lang_sup_criterion_{model_const.model_num}')
+    
+    #     eval_flickr_phrase_loc.main(exp_const,data_const,model_const)
+
+    best_model_num = -1
+    best_pt_recall = 0
+    best_results = None
+    for num in model_nums:
         filename = os.path.join(
             exp_const.exp_dir,
-            f'results_val_best.json')
+            f'results_{data_const.subset}_{num}.json')
+        
+        if not os.path.exists(filename):
+            break
+
         results = io.load_json_object(filename)
-        model_const.model_num = results['model_num']
-        print('Selected model num:',model_const.model_num)
+        results['model_num'] = num
+        print(results)
+        if results['pt_recall'] >= best_pt_recall:
+            best_results = results
+            best_pt_recall = results['pt_recall']
+            best_model_num = num
 
-    model_const.object_encoder_path = os.path.join(
-        exp_const.model_dir,
-        f'object_encoder_{model_const.model_num}')
-    model_const.lang_sup_criterion_path = os.path.join(
-        exp_const.model_dir,
-        f'lang_sup_criterion_{model_const.model_num}')
-
-    eval_flickr_phrase_loc.main(exp_const,data_const,model_const)
+    print('-'*80)
+    best_results['model_num'] = best_model_num
+    print(best_results)
+    filename = os.path.join(
+        exp_const.exp_dir,
+        f'results_{data_const.subset}_best.json')
+    io.dump_json_object(best_results,filename)
 
 
 if __name__=='__main__':

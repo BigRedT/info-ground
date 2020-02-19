@@ -55,10 +55,10 @@ def align_pos_tokens(pos_tags,tokens):
     return alignment
 
 
-def get_noun_verb_token_ids(pos_tags,alignment):
+def get_noun_adj_token_ids(pos_tags,alignment):
     token_ids = []
     for i, (word,tag) in enumerate(pos_tags):
-        if tag in ['NN','NNS','NNP','NNPS','VB','VBD','VBG','VBN','VBP','VBZ']:
+        if tag in ['NN','NNS','NNP','NNPS','JJ','JJR','JJS']:
             for idx in alignment[i]:
                 token_ids.append(idx)
             
@@ -97,7 +97,7 @@ def main(**kwargs):
 
     data_const = DetFeatDatasetConstants(kwargs['subset'])
     annos = io.load_json_object(data_const.annos_json)['annotations']
-    noun_verb_token_ids = [None]*len(annos)
+    noun_adj_token_ids = [None]*len(annos)
     for i,anno in enumerate(tqdm(annos)):
         image_id = anno['image_id']
         cap_id = anno['id']
@@ -111,18 +111,18 @@ def main(**kwargs):
         
         alignment = align_pos_tokens(pos_tags,tokens)
         
-        noun_verb_token_ids_ = get_noun_verb_token_ids(pos_tags,alignment)
-        noun_verb_tokens_ = []
-        for k in noun_verb_token_ids_:
-            noun_verb_tokens_.append(tokens[k])
+        noun_adj_token_ids_ = get_noun_adj_token_ids(pos_tags,alignment)
+        noun_adj_tokens_ = []
+        for k in noun_adj_token_ids_:
+            noun_adj_tokens_.append(tokens[k])
 
-        noun_verb_token_ids[i] = {
+        noun_adj_token_ids[i] = {
             'image_id': image_id,
             'cap_id': cap_id,
-            'token_ids': noun_verb_token_ids_,
-            'tokens': noun_verb_tokens_}
+            'token_ids': noun_adj_token_ids_,
+            'tokens': noun_adj_tokens_}
 
-    io.dump_json_object(noun_verb_token_ids,data_const.noun_verb_tokens_json)
+    io.dump_json_object(noun_adj_token_ids,data_const.noun_verb_tokens_json)
 
 
 if __name__=='__main__':

@@ -58,7 +58,7 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
         self.kw = kw
         #self.mad_layer = MaxAttDropout()
         
-    def forward(self,o,u,w,mask):
+    def forward(self,o,u,w,mask,return_logits=False):
         """
         Input:
         :o: BoxToxDo contextualized object features
@@ -66,7 +66,7 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
         :w: BwxTwxDw caption word features
         :mask: BwxTw word mask
         """
-        assert(o.size()[:1]==w.size()[:1]), 'Bo==Bw'
+        #assert(o.size()[:1]==w.size()[:1]), 'Bo==Bw'
         
         Bo,To,Do = o.size()
         _,_,Du = u.size()
@@ -107,6 +107,9 @@ class CapInfoNCE(nn.Module,io.WritableToFile):
         loss = -log_softmax.sum(2).diag().mean()
 
         att = att.squeeze(4)
+
+        if return_logits==True:
+            return loss, att, att_V_o, logits
         
         return loss, att, att_V_o
 
@@ -190,7 +193,15 @@ class KVLayer(nn.Module,io.WritableToFile):
 class KLayer(nn.Module,io.WritableToFile):
     def __init__(self,d_in,d_out):
         super().__init__()
-        self.K_layer = nn.Linear(d_in,d_out)
+        #self.K_layer = nn.Linear(d_in,d_out)
+        self.K_layer = nn.Sequential(
+            nn.Linear(d_in,d_in),
+            nn.BatchNorm1d(d_in),
+            nn.ReLU(),
+            # nn.Linear(d_in,d_in),
+            # nn.BatchNorm1d(d_in),
+            # nn.ReLU(),
+            nn.Linear(d_in,d_out))
     
     def forward(self,x):
         B,T,D = x.size()
@@ -202,7 +213,15 @@ class KLayer(nn.Module,io.WritableToFile):
 class FLayer(nn.Module,io.WritableToFile):
     def __init__(self,d_in,d_out):
         super().__init__()
-        self.f_layer = nn.Linear(d_in,d_out)
+        #self.f_layer = nn.Linear(d_in,d_out)
+        self.f_layer = nn.Sequential(
+            nn.Linear(d_in,d_in),
+            nn.BatchNorm1d(d_in),
+            nn.ReLU(),
+            # nn.Linear(d_in,d_in),
+            # nn.BatchNorm1d(d_in),
+            # nn.ReLU(),
+            nn.Linear(d_in,d_out))
     
     def forward(self,x):
         Bw,Bo,Tw,Do = x.size()
