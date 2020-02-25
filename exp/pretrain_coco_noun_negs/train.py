@@ -34,11 +34,11 @@ def create_info_nce_criterion(x_dim,c_dim,d):
     return criterion
 
 
-def create_cap_info_nce_criterion(o_dim,u_dim,w_dim,d):
-    fo = FLayer(o_dim,d)
-    fw = FLayer(w_dim,d)
-    ku = KLayer(u_dim,d)
-    kw = KLayer(w_dim,d)
+def create_cap_info_nce_criterion(o_dim,u_dim,w_dim,d,layers):
+    fo = FLayer(o_dim,d,layers)
+    fw = FLayer(w_dim,d,layers)
+    ku = KLayer(u_dim,d,layers)
+    kw = KLayer(w_dim,d,layers)
     criterion = CapInfoNCE(fo,fw,ku,kw)
     
     return criterion
@@ -50,6 +50,10 @@ def train_model(model,dataloaders,exp_const,tb_writer):
         {'params': model.self_sup_criterion.parameters()},
         {'params': model.lang_sup_criterion.parameters()},
     ]
+    
+    if exp_const.random_lang is True:
+        params.append({'params': model.cap_encoder.parameters()})
+
     if exp_const.optimizer == 'SGD':
         opt = optim.SGD(
             params,
@@ -74,6 +78,8 @@ def train_model(model,dataloaders,exp_const,tb_writer):
             model.object_encoder.train()
             model.self_sup_criterion.train()
             model.lang_sup_criterion.train()
+            if exp_const.random_lang is True:
+                model.cap_encoder.train()
 
             # Forward pass
             object_features = data['features'].cuda()
@@ -95,7 +101,7 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                 object_mask)
 
             # Compute cap-image loss
-            with torch.no_grad():
+            if exp_const.random_lang is True:
                 token_ids, tokens, token_lens = model.cap_encoder.tokenize_batch(
                     data['caption'])
                 token_ids = torch.LongTensor(token_ids).cuda()
@@ -108,19 +114,36 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                 _, noun_token_mask = model.cap_encoder.select_embed(
                     token_features,
                     noun_ids.unsqueeze(1))
-
+            else:
+                with torch.no_grad():
+                    token_ids, tokens, token_lens = model.cap_encoder.tokenize_batch(
+                        data['caption'])
+                    token_ids = torch.LongTensor(token_ids).cuda()
+                    token_features, word_word_att = model.cap_encoder(token_ids)
+                    noun_verb_token_ids = data['noun_verb_token_ids'].cuda()
+                    word_features, token_mask = model.cap_encoder.select_embed(
+                        token_features,
+                        noun_verb_token_ids)
+                    noun_ids = data['noun_id'].cuda()
+                    _, noun_token_mask = model.cap_encoder.select_embed(
+                        token_features,
+                        noun_ids.unsqueeze(1))
+            
+            if exp_const.random_lang is not True:
+                word_features = word_features.detach()
+                    
             lang_sup_loss, noun_verb_obj_att, att_V_o = \
                 model.lang_sup_criterion(
                     context_object_features,
                     object_features,
-                    word_features.detach(),
+                    word_features,
                     token_mask)
-            
+
             noun_feats = data['neg_noun_feats'].cuda()
             att_V_o = model.lang_sup_criterion.att_V_o_for_negs(
                 context_object_features,
                 object_features,
-                noun_feats.detach()) # Bx(N+1)xD
+                noun_feats) # Bx(N+1)xD
             valid_noun_mask = 1-noun_token_mask # Bx1
             neg_noun_loss,_ = compute_neg_noun_loss(
                 att_V_o,
@@ -162,6 +185,8 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                     'self_sup_criterion': model.self_sup_criterion,
                     'lang_sup_criterion': model.lang_sup_criterion,
                 }
+                if exp_const.random_lang is True:
+                    save_items['cap_encoder'] = model.cap_encoder
 
                 for name,nn_model in save_items.items():
                     model_path = os.path.join(
@@ -201,6 +226,8 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                         'best_self_sup_criterion': model.self_sup_criterion,
                         'best_lang_sup_criterion': model.lang_sup_criterion,
                     }
+                    if exp_const.random_lang is True:
+                        save_items['best_cap_encoder'] = model.cap_encoder
 
                     for name,nn_model in save_items.items():
                         model_path = os.path.join(
@@ -223,6 +250,8 @@ def eval_model(model,dataloader,exp_const,step):
     model.object_encoder.eval()
     model.self_sup_criterion.eval()
     model.lang_sup_criterion.eval()
+    if exp_const.random_lang is True:
+        model.cap_encoder.eval()
 
     avg_self_sup_loss = 0
     avg_lang_sup_loss = 0
@@ -275,7 +304,7 @@ def eval_model(model,dataloader,exp_const,step):
         att_V_o = model.lang_sup_criterion.att_V_o_for_negs(
             context_object_features,
             object_features,
-            noun_feats.detach()) # Bx(N+1)xD
+            noun_feats) # Bx(N+1)xD
         valid_noun_mask = 1-noun_token_mask # Bx1
         neg_noun_loss,_ = compute_neg_noun_loss(
             att_V_o,
@@ -333,6 +362,8 @@ def main(exp_const,data_const,model_const):
     model.const = model_const
     model.object_encoder = ObjectEncoder(model.const.object_encoder)
     model.cap_encoder = CapEncoder(model.const.cap_encoder)
+    if exp_const.random_lang is True:
+        model.cap_encoder.random_init()
 
     c_dim = model.object_encoder.const.object_feature_dim
     if exp_const.contextualize==True:
@@ -350,7 +381,8 @@ def main(exp_const,data_const,model_const):
         o_dim,
         model.object_encoder.const.object_feature_dim,
         model.cap_encoder.model.config.hidden_size,
-        model.cap_encoder.model.config.hidden_size//2)
+        model.cap_encoder.model.config.hidden_size//2,
+        model.const.cap_info_nce_layers)
     if model.const.model_num != -1:
         model.object_encoder.load_state_dict(
             torch.load(model.const.object_encoder_path)['state_dict'])

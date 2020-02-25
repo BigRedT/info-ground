@@ -41,12 +41,22 @@ def find_all_model_numbers(model_dir):
     '--subset',
     default='val',
     help='subset to run evaluation on')
+@click.option(
+    '--random_lang',
+    is_flag=True,
+    help='Apply flag to randomly initialize and train BERT')
+@click.option(
+    '--cap_info_nce_layers',
+    default=2,
+    type=int,
+    help='Number of layers in lang_sup_criterion')
 def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.model_dir = os.path.join(exp_const.exp_dir,'models')
     exp_const.seed = 0
     exp_const.contextualize = not kwargs['no_context']
     exp_const.self_sup_feat = kwargs['self_sup_feat']
+    exp_const.random_lang = kwargs['random_lang']
 
     DatasetConstants = FlickrDatasetConstants
     if exp_const.self_sup_feat==True:
@@ -62,18 +72,31 @@ def main(**kwargs):
         model_const.object_encoder.object_feature_dim = 2048 + 256
     model_const.cap_encoder = CapEncoderConstants()
     model_const.cap_encoder.output_attentions = True
+    model_const.cap_info_nce_layers = kwargs['cap_info_nce_layers']
 
     model_nums = find_all_model_numbers(exp_const.model_dir)
-    # for num in model_nums:
-    #     model_const.model_num = num
-    #     model_const.object_encoder_path = os.path.join(
-    #         exp_const.model_dir,
-    #         f'object_encoder_{model_const.model_num}')
-    #     model_const.lang_sup_criterion_path = os.path.join(
-    #         exp_const.model_dir,
-    #         f'lang_sup_criterion_{model_const.model_num}')
+    for num in model_nums:
+        model_const.model_num = num
+        model_const.object_encoder_path = os.path.join(
+            exp_const.model_dir,
+            f'object_encoder_{model_const.model_num}')
+        model_const.lang_sup_criterion_path = os.path.join(
+            exp_const.model_dir,
+            f'lang_sup_criterion_{model_const.model_num}')
+        if exp_const.random_lang is True:
+            model_const.cap_encoder_path = os.path.join(
+                exp_const.model_dir,
+                f'cap_encoder_{model_const.model_num}')
     
-    #     eval_flickr_phrase_loc.main(exp_const,data_const,model_const)
+        filename = os.path.join(
+            exp_const.exp_dir,
+            f'results_{data_const.subset}_{num}.json')
+        
+        # if os.path.exists(filename):
+        #     print(io.load_json_object(filename))
+        #     continue
+        
+        eval_flickr_phrase_loc.main(exp_const,data_const,model_const)
 
     best_model_num = -1
     best_pt_recall = 0

@@ -57,6 +57,19 @@ from ..train import main as train
     '--self_sup_feat',
     is_flag=True,
     help='Apply flag to use self-supervised features')
+@click.option(
+    '--random_lang',
+    is_flag=True,
+    help='Apply flag to randomly initialize and train BERT')
+@click.option(
+    '--cap_info_nce_layers',
+    default=2,
+    type=int,
+    help='Number of layers in lang_sup_criterion')
+@click.option(
+    '--val_frequently',
+    is_flag=True,
+    help='set for val_step=model_save_step else val_step=2*model_save_step')
 def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.log_dir = os.path.join(exp_const.exp_dir,'logs')
@@ -68,7 +81,10 @@ def main(**kwargs):
     exp_const.num_epochs = 10
     exp_const.log_step = 20
     exp_const.model_save_step = 400000//(2*kwargs['train_batch_size']) # 4000=400000/(2*50)
-    exp_const.val_step = exp_const.model_save_step
+    val_freq_factor=2
+    if kwargs['val_frequently'] is True:
+        val_freq_factor=1
+    exp_const.val_step = val_freq_factor*exp_const.model_save_step # set to 1*model_save_step for plotting mi vs perf
     exp_const.num_val_samples = None
     exp_const.train_batch_size = kwargs['train_batch_size']
     exp_const.val_batch_size = 20
@@ -79,6 +95,7 @@ def main(**kwargs):
     exp_const.lang_sup_loss_wt = kwargs['lang_sup_loss_wt']
     exp_const.contextualize = not kwargs['no_context']
     exp_const.self_sup_feat = kwargs['self_sup_feat']
+    exp_const.random_lang = kwargs['random_lang']
     
     DatasetConstants = DetFeatDatasetConstants
     if exp_const.self_sup_feat==True:
@@ -98,6 +115,7 @@ def main(**kwargs):
         model_const.object_encoder.object_feature_dim = 2048 + 256
     model_const.cap_encoder = CapEncoderConstants()
     model_const.cap_encoder.output_attentions = True
+    model_const.cap_info_nce_layers = kwargs['cap_info_nce_layers']
     model_const.object_encoder_path = os.path.join(
         exp_const.model_dir,
         f'object_encoder_{model_const.model_num}')

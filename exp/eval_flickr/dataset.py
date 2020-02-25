@@ -112,6 +112,7 @@ class FlickrDataset(Dataset):
 
 
 if __name__=='__main__':
-    const = FlickrDatasetConstants('test')
+    const = FlickrDatasetConstants('val')
     dataset = FlickrDataset(const)
+    print(len(dataset),len(dataset)//5,5*(len(dataset)//5))
     import pdb; pdb.set_trace()

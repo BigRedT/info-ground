@@ -193,9 +193,10 @@ class DetFeatDataset(Dataset):
         return collate_fn
 
 if __name__=='__main__':
-    const = DetFeatDatasetConstants('val')
+    const = DetFeatDatasetConstants('train')
     dataset = DetFeatDataset(const)
     print(len(dataset))
+    import pdb; pdb.set_trace()
     dataloader = DataLoader(
         dataset,
         5,

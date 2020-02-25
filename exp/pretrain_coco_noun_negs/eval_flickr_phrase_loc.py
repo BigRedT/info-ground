@@ -16,16 +16,17 @@ from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
 from exp.eval_flickr.dataset import FlickrDataset
 from exp.eval_flickr.self_sup_dataset import SelfSupFlickrDataset
 from utils.bbox_utils import compute_iou, point_in_box, compute_center
+from .train import create_cap_info_nce_criterion
 
 
-def create_cap_info_nce_criterion(o_dim,u_dim,w_dim,d):
-    fo = FLayer(o_dim,d)
-    fw = FLayer(w_dim,d)
-    ku = KLayer(u_dim,d)
-    kw = KLayer(w_dim,d)
-    criterion = CapInfoNCE(fo,fw,ku,kw)
+# def create_cap_info_nce_criterion(o_dim,u_dim,w_dim,d):
+#     fo = FLayer(o_dim,d)
+#     fw = FLayer(w_dim,d)
+#     ku = KLayer(u_dim,d)
+#     kw = KLayer(w_dim,d)
+#     criterion = CapInfoNCE(fo,fw,ku,kw)
     
-    return criterion
+#     return criterion
 
 
 # def combine_token_obj_att(token_obj_att,tokens):
@@ -253,7 +254,8 @@ def main(exp_const,data_const,model_const):
         o_dim,
         model.object_encoder.const.object_feature_dim,
         model.cap_encoder.model.config.hidden_size,
-        model.cap_encoder.model.config.hidden_size//2)
+        model.cap_encoder.model.config.hidden_size//2,
+        model.const.cap_info_nce_layers)
     if model.const.model_num != -1:
         loaded_object_encoder = torch.load(model.const.object_encoder_path)
         print('Loaded model number:',loaded_object_encoder['step'])
@@ -261,6 +263,10 @@ def main(exp_const,data_const,model_const):
             loaded_object_encoder['state_dict'])
         model.lang_sup_criterion.load_state_dict(
             torch.load(model.const.lang_sup_criterion_path)['state_dict'])
+        if exp_const.random_lang is True:
+            model.cap_encoder.load_state_dict(
+                torch.load(model.const.cap_encoder_path)['state_dict'])
+
     model.object_encoder.cuda()
     model.cap_encoder.cuda()
     model.lang_sup_criterion.cuda()

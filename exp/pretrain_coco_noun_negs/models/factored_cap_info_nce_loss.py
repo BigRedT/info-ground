@@ -191,17 +191,25 @@ class KVLayer(nn.Module,io.WritableToFile):
 
 
 class KLayer(nn.Module,io.WritableToFile):
-    def __init__(self,d_in,d_out):
+    def __init__(self,d_in,d_out,layers=2):
         super().__init__()
-        #self.K_layer = nn.Linear(d_in,d_out)
-        self.K_layer = nn.Sequential(
-            nn.Linear(d_in,d_in),
-            nn.BatchNorm1d(d_in),
-            nn.ReLU(),
-            # nn.Linear(d_in,d_in),
-            # nn.BatchNorm1d(d_in),
-            # nn.ReLU(),
-            nn.Linear(d_in,d_out))
+        if layers==1:
+            self.K_layer = nn.Linear(d_in,d_out)
+        elif layers==2:
+            self.K_layer = nn.Sequential(
+                nn.Linear(d_in,d_in),
+                nn.BatchNorm1d(d_in),
+                nn.ReLU(),
+                nn.Linear(d_in,d_out))
+        elif layers==3:
+            self.K_layer = nn.Sequential(
+                nn.Linear(d_in,d_in),
+                nn.BatchNorm1d(d_in),
+                nn.ReLU(),
+                nn.Linear(d_in,d_in),
+                nn.BatchNorm1d(d_in),
+                nn.ReLU(),
+                nn.Linear(d_in,d_out))
     
     def forward(self,x):
         B,T,D = x.size()
@@ -211,17 +219,25 @@ class KLayer(nn.Module,io.WritableToFile):
 
 
 class FLayer(nn.Module,io.WritableToFile):
-    def __init__(self,d_in,d_out):
+    def __init__(self,d_in,d_out,layers=2):
         super().__init__()
-        #self.f_layer = nn.Linear(d_in,d_out)
-        self.f_layer = nn.Sequential(
-            nn.Linear(d_in,d_in),
-            nn.BatchNorm1d(d_in),
-            nn.ReLU(),
-            # nn.Linear(d_in,d_in),
-            # nn.BatchNorm1d(d_in),
-            # nn.ReLU(),
-            nn.Linear(d_in,d_out))
+        if layers==1:
+            self.f_layer = nn.Linear(d_in,d_out)
+        elif layers==2:
+            self.f_layer = nn.Sequential(
+                nn.Linear(d_in,d_in),
+                nn.BatchNorm1d(d_in),
+                nn.ReLU(),
+                nn.Linear(d_in,d_out))
+        elif layers==3:
+            self.f_layer = nn.Sequential(
+                nn.Linear(d_in,d_in),
+                nn.BatchNorm1d(d_in),
+                nn.ReLU(),
+                nn.Linear(d_in,d_in),
+                nn.BatchNorm1d(d_in),
+                nn.ReLU(),
+                nn.Linear(d_in,d_out))
     
     def forward(self,x):
         Bw,Bo,Tw,Do = x.size()

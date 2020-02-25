@@ -7,6 +7,12 @@ import pytorch_transformers
 import utils.io as io
 
 
+def weights_init(m):
+    if isinstance(m, nn.Linear):
+        torch.nn.init.xavier_uniform(m.weight.data)
+        m.bias.data.fill_(0.0)
+
+
 class CapEncoderConstants(io.JsonSerializableClass):
     def __init__(self):
         super().__init__()
@@ -34,6 +40,9 @@ class CapEncoder(nn.Module,io.WritableToFile):
             pytorch_transformers,
             self.const.tokenizer).from_pretrained(self.const.pretrained_weights)
     
+    def random_init(self):
+        self.model.apply(weights_init)
+
     @property
     def pad_token(self):
         return self.tokenizer.pad_token
