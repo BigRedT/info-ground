@@ -24,3 +24,13 @@ sentences:
 
 self_sup_feats:
   test: cmc_resnet50v3_test.h5py
+
+noun_tokens:
+  train: annotations/noun_tokens_train.json
+noun_vocab:
+  train: annotations/noun_vocab_train.json
+noun_negatives:
+  samples:
+    train: bert_noun_negatives_train.json
+  feats:
+    train: bert_noun_negatives_train.h5py
