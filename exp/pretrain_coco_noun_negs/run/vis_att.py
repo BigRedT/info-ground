@@ -4,10 +4,12 @@ import click
 from utils.constants import Constants, ExpConstants
 from global_constants import coco_paths
 from ..dataset import DetFeatDatasetConstants
+from exp.eval_flickr.dataset import FlickrDatasetConstants
 from ..self_sup_dataset import SelfSupDetFeatDatasetConstants
 from ..models.object_encoder import ObjectEncoderConstants
 from ..models.cap_encoder import CapEncoderConstants
 from ..vis_att import main as vis_att
+from ..vis_att_flickr import main as vis_att_flickr
 
 
 @click.command()
@@ -36,20 +38,22 @@ def main(**kwargs):
     exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
     exp_const.log_dir = os.path.join(exp_const.exp_dir,'logs')
     exp_const.model_dir = os.path.join(exp_const.exp_dir,'models')
-    exp_const.vis_dir = os.path.join(exp_const.exp_dir,'vis/attention')
+    exp_const.vis_dir = os.path.join(exp_const.exp_dir,'vis/attention_flickr')
     exp_const.num_vis_samples = 50
     exp_const.seed = 0
     exp_const.contextualize = not kwargs['no_context']
     exp_const.self_sup_feat = kwargs['self_sup_feat']
 
-    DatasetConstants = DetFeatDatasetConstants
-    if exp_const.self_sup_feat==True:
-        DatasetConstants = SelfSupDetFeatDatasetConstants
+    # DatasetConstants = DetFeatDatasetConstants
+    # if exp_const.self_sup_feat==True:
+    #     DatasetConstants = SelfSupDetFeatDatasetConstants
+
+    DatasetConstants = FlickrDatasetConstants
 
     data_const = DatasetConstants('val')
-    data_const.image_dir = os.path.join(
-        coco_paths['image_dir'],
-        data_const.subset_image_dirname)
+    # data_const.image_dir = os.path.join(
+    #     coco_paths['image_dir'],
+    #     data_const.subset_image_dirname)
     data_const.read_neg_samples = False
     data_const.read_noun_verb_tokens = False
 
@@ -87,8 +91,8 @@ def main(**kwargs):
             exp_const.model_dir,
             f'blender_{model_const.model_num}')
 
-    vis_att(exp_const,data_const,model_const)
-
+    #vis_att(exp_const,data_const,model_const)
+    vis_att_flickr(exp_const,data_const,model_const)
 
 if __name__=='__main__':
     main()

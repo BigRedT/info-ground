@@ -15,7 +15,8 @@ class FlickrDatasetConstants(Constants):
         super().__init__()
         self.subset = subset
         self.det_dir = os.path.join(flickr_paths['det_dir'],self.subset)
-        
+        self.image_dir = flickr_paths['image_dir']
+
         self.image_ids_txt = os.path.join(
             flickr_paths['downloads_dir'],
             flickr_paths['subsets'][self.subset])
@@ -48,6 +49,11 @@ class FlickrDataset(Dataset):
         image_ids = [idx.decode() for idx in image_ids.split()]
         return image_ids
 
+    def get_image_path(self,image_id):
+        return os.path.join(
+            self.const.image_dir,
+            f'{image_id}.jpg')
+            
     def __len__(self):
         return 5*len(self.image_ids)
 
