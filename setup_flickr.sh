@@ -13,4 +13,9 @@ mkdir -p $DATA
 FLICKR_PROC="${DATA}/flickr30k_proc"
 mkdir $FLICKR_PROC
 cp -r "${NFS_DATA}/flickr30k_proc/bottomup_flickr_detections" $FLICKR_PROC
+#cp -r "${NFS_DATA}/flickr30k_proc/bottomup_flickr_detections/train" "${FLICKR_PROC}/bottomup_flickr_detections/"
 #cp -r "${NFS_DATA}/flickr30k_proc/detections" $FLICKR_PROC
+
+# Copy cache features
+cp -r "${NFS_DATA}/flickr30k_proc/bert_noun_negatives_train.h5py" $FLICKR_PROC
+cp -r "${NFS_DATA}/flickr30k_proc/bert_noun_negatives_val.h5py" $FLICKR_PROC
