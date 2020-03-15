@@ -2,6 +2,7 @@ import os
 import click
 import torch
 import copy
+import random
 from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
@@ -106,25 +107,55 @@ def ensemble_prediction(token_ids,cap_encoder,T=5):
     return agg_pred
 
 
+class RandomCaptionSampler():
+    def __init__(self,dataset,k):
+        self.annos = dataset.annos['annotations']
+        self.annos = list(zip(self.annos,range(len(self.annos))))
+        self.noun_token_ids = dataset.noun_token_ids
+        self.k = k
+
+    def sample(self,image_id):
+        candidates = random.sample(self.annos,2*self.k)
+        samples = []
+        for cand,i in candidates:
+            if len(samples)==self.k:
+                break
+
+            if str(cand['image_id'])!=str(image_id):
+                selected_noun_tokens = []
+                if len(self.noun_token_ids[i]['token_ids']) > 0:
+                    selected_noun_tokens = random.choice(
+                        self.noun_token_ids[i]['token_ids'])
+                
+                noun_idx = -1
+                if len(selected_noun_tokens) > 0:
+                    noun_idx = selected_noun_tokens[0]
+
+                cand['noun_token_idx'] = noun_idx
+                samples.append(cand)
+            
+        return samples
+    
+    def batch(self,samples):
+        noun_token_ids = []
+        captions = []
+        for s in samples:
+            noun_token_ids.append(s['noun_token_idx'])
+            captions.append(s['caption'])
+        
+        return noun_token_ids, captions
+
+
 @click.command()
 @click.option(
     '--subset',
     type=click.Choice(['train','val','test']),
     default='coco subset to identify nouns for')
 @click.option(
-    '--rank',
-    type=int,
-    default=10,
-    help='Number of samples to rank')
-@click.option(
     '--select',
     type=int,
     default=5,
     help='Number of samples to select')
-@click.option(
-    '--wo_rerank',
-    is_flag=True,
-    help='set flag to not rerank')
 def main(**kwargs):
     model_const = CapEncoderConstants()
     model_const.model = 'BertForPreTraining'
@@ -139,24 +170,13 @@ def main(**kwargs):
     collate_fn = dataset.get_collate_fn()
     dataloader = DataLoader(dataset,20,num_workers=10,collate_fn=collate_fn)
 
+    random_cap_sampler = RandomCaptionSampler(dataset,kwargs['select'])
+
     noun_vocab = io.load_json_object(const.noun_vocab_json)
     vocab_mask = create_vocab_mask(
         id_to_token_converter,
         cap_encoder.tokenizer.vocab_size,
         noun_vocab)
-    
-    if kwargs['wo_rerank'] is True:
-        filename = os.path.join(
-            coco_paths['proc_dir'],
-            f'vis_bert_noun_negatives_wo_rerank_{subset}.html')
-    else:
-        filename = os.path.join(
-            coco_paths['proc_dir'],
-            f'vis_bert_noun_negatives_{subset}.html')
-
-    html_writer = HtmlWriter(filename)
-
-    K = kwargs['rank']
 
     neg_samples = {}
 
@@ -169,56 +189,12 @@ def main(**kwargs):
         token_ids = torch.LongTensor(token_ids_)
         mask_token_ids = torch.LongTensor(mask_token_ids_)
         
-        predictions = cap_encoder.model(token_ids.cuda())[0].cpu()
-        predictions = apply_vocab_mask(predictions,vocab_mask)
-        
-        mask_predictions = cap_encoder.model(mask_token_ids.cuda())[0].cpu()
-        mask_predictions = apply_vocab_mask(mask_predictions,vocab_mask)
-
-        max_ids = torch.topk(predictions,K,2)[1]
-        mask_max_ids = torch.topk(mask_predictions,K,2)[1]
-
-        true_prob_mask_max_ids = torch.gather(predictions,2,mask_max_ids)
-        lang_prob_mask_max_ids = torch.gather(mask_predictions,2,mask_max_ids)
-        if kwargs['wo_rerank'] is True:
-            score = lang_prob_mask_max_ids
-        else:
-            score = lang_prob_mask_max_ids / (true_prob_mask_max_ids+1e-6)
-
-        max_ids = max_ids.detach().numpy()
-        mask_max_ids = mask_max_ids.detach().numpy()
-        
-        B,L,K = max_ids.shape
+        B = token_ids.size(0)
         for i in range(B):
             if len(noun_token_ids[i])==0:
                 continue
 
             j = noun_token_ids[i][0]
-            preds = []
-            mask_preds = []
-            score_preds = []
-            for k in range(K):
-                preds.append(
-                    (cap_encoder.tokenizer._convert_id_to_token(max_ids[i][j][k]),
-                    round(predictions[i][j][max_ids[i][j][k]].item(),3)))
-                mask_preds.append(
-                    (cap_encoder.tokenizer._convert_id_to_token(mask_max_ids[i][j][k]),
-                    round(mask_predictions[i][j][mask_max_ids[i][j][k]].item(),3)))
-                score_preds.append(
-                    (cap_encoder.tokenizer._convert_id_to_token(mask_max_ids[i][j][k]),
-                    round(score[i][j][k].item(),3)))
-            
-            rerank_preds = sort_by_scores(score_preds)
-
-            if it <= 50:
-                html_writer.add_element({0: '-'*10, 1: '-'*100})
-                html_writer.add_element({0: 'Original', 1: tokens[i]})
-                html_writer.add_element(
-                    {0: 'Token Replaced', 1: tokens[i][j]})
-                html_writer.add_element({0: 'True Pred', 1: preds})
-                html_writer.add_element({0: 'Lang Pred', 1: mask_preds})
-                html_writer.add_element({0: 'Rerank Pred', 1: rerank_preds})
-
 
             image_id = str(data['image_id'][i].item())
             cap_id = str(data['cap_id'][i].item())
@@ -231,25 +207,26 @@ def main(**kwargs):
                     'gt': tokens[i],
                     'negs': {}}
             
-            for k in range(kwargs['select']):
-                new_tokens,neg_idx = insert_word(
-                    tokens[i],
-                    noun_token_ids[i],
-                    rerank_preds[k][0])
-                new_tokens = remove_pad(new_tokens)
-                str_neg_idx = str(neg_idx)
-                if str_neg_idx not in neg_samples[image_id][cap_id]['negs']:
-                    neg_samples[image_id][cap_id]['negs'][str_neg_idx] = []
+            neg_noun_token_ids, neg_captions = random_cap_sampler.batch(
+                random_cap_sampler.sample(data['image_id'][i].item()))
 
-                neg_samples[image_id][cap_id]['negs'][str_neg_idx].append(
-                    new_tokens)
+            _, neg_tokens, _ = cap_encoder.tokenize_batch(
+                neg_captions)
+            _,neg_idx = insert_word(
+                tokens[i],
+                noun_token_ids[i],
+                '_NONE_')
+            str_neg_idx = str(neg_idx)
+
+            neg_samples[image_id][cap_id]['negs'][str_neg_idx] = {
+                'neg_tokens': neg_tokens,
+                'neg_token_ids': neg_noun_token_ids}
+
 
     filename = os.path.join(
         coco_paths['proc_dir'],
         coco_paths['extracted']['noun_negatives']['samples'][subset])
     io.dump_json_object(neg_samples,filename)
-
-    html_writer.close()
 
 
 

@@ -40,7 +40,7 @@ def main(**kwargs):
     exp_const.model_dir = os.path.join(exp_const.exp_dir,'models')
     exp_const.vis_dir = os.path.join(exp_const.exp_dir,'vis/attention_flickr')
     exp_const.num_vis_samples = 50
-    exp_const.seed = 0
+    exp_const.seed = 100 #0 for paper figs
     exp_const.contextualize = not kwargs['no_context']
     exp_const.self_sup_feat = kwargs['self_sup_feat']
 

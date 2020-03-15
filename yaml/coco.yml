@@ -52,11 +52,11 @@ extracted:
       val: bert_negatives_val2014.h5py
   noun_negatives:
     samples:
-      train: bert_noun_negatives_train2014.json
-      val: bert_noun_negatives_val2014.json
+      train: bert_noun_negatives_random_train2014.json
+      val: bert_noun_negatives_random_val2014.json
     feats:
-      train: bert_noun_negatives_train2014.h5py
-      val: bert_noun_negatives_val2014.h5py
+      train: bert_noun_negatives_random_train2014.h5py
+      val: bert_noun_negatives_random_val2014.h5py
   noun_feats:
     feats:
       train: bert_noun_feats_train2014.h5py
