@@ -14,7 +14,6 @@ from .models.object_encoder import ObjectEncoder
 from .models.cap_encoder import CapEncoder
 from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
 from exp.eval_flickr.dataset import FlickrDataset
-from exp.eval_flickr.self_sup_dataset import SelfSupFlickrDataset
 from utils.bbox_utils import compute_iou, point_in_box, compute_center
 from .train import create_cap_info_nce_criterion
 
@@ -272,10 +271,7 @@ def main(exp_const,data_const,model_const):
     model.lang_sup_criterion.cuda()
 
     print('Creating dataloader ...')
-    FeatDataset = FlickrDataset
-    if exp_const.self_sup_feat==True:
-        FeatDataset = SelfSupFlickrDataset
-    dataset = FeatDataset(data_const)
+    dataset = FlickrDataset(data_const)
 
     with torch.no_grad():
         results = eval_model(model,dataset,exp_const)

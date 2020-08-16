@@ -19,7 +19,6 @@ from .models.info_nce_loss import InfoNCE
 from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
 from .models.neg_noun_loss import compute_neg_noun_loss
 from .dataset import DetFeatDataset
-from .self_sup_dataset import SelfSupDetFeatDataset
 
 
 def create_info_nce_criterion(x_dim,c_dim,d):
@@ -106,10 +105,10 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                     data['caption'])
                 token_ids = torch.LongTensor(token_ids).cuda()
                 token_features, word_word_att = model.cap_encoder(token_ids)
-                noun_verb_token_ids = data['noun_verb_token_ids'].cuda()
+                noun_adj_token_ids = data['noun_adj_token_ids'].cuda()
                 word_features, token_mask = model.cap_encoder.select_embed(
                     token_features,
-                    noun_verb_token_ids)
+                    noun_adj_token_ids)
                 noun_ids = data['noun_id'].cuda()
                 _, noun_token_mask = model.cap_encoder.select_embed(
                     token_features,
@@ -120,10 +119,10 @@ def train_model(model,dataloaders,exp_const,tb_writer):
                         data['caption'])
                     token_ids = torch.LongTensor(token_ids).cuda()
                     token_features, word_word_att = model.cap_encoder(token_ids)
-                    noun_verb_token_ids = data['noun_verb_token_ids'].cuda()
+                    noun_adj_token_ids = data['noun_adj_token_ids'].cuda()
                     word_features, token_mask = model.cap_encoder.select_embed(
                         token_features,
-                        noun_verb_token_ids)
+                        noun_adj_token_ids)
                     noun_ids = data['noun_id'].cuda()
                     _, noun_token_mask = model.cap_encoder.select_embed(
                         token_features,
@@ -132,7 +131,7 @@ def train_model(model,dataloaders,exp_const,tb_writer):
             if exp_const.random_lang is not True:
                 word_features = word_features.detach()
                     
-            lang_sup_loss, noun_verb_obj_att, att_V_o = \
+            lang_sup_loss, noun_adj_obj_att, att_V_o = \
                 model.lang_sup_criterion(
                     context_object_features,
                     object_features,
@@ -285,16 +284,16 @@ def eval_model(model,dataloader,exp_const,step):
             data['caption'])
         token_ids = torch.LongTensor(token_ids).cuda()
         token_features, word_word_att = model.cap_encoder(token_ids)
-        noun_verb_token_ids = data['noun_verb_token_ids'].cuda()
+        noun_adj_token_ids = data['noun_adj_token_ids'].cuda()
         word_features, token_mask = model.cap_encoder.select_embed(
             token_features,
-            noun_verb_token_ids)
+            noun_adj_token_ids)
         noun_ids = data['noun_id'].cuda()
         _, noun_token_mask = model.cap_encoder.select_embed(
             token_features,
             noun_ids.unsqueeze(1))
 
-        lang_sup_loss, noun_verb_obj_att, att_V_o = model.lang_sup_criterion(
+        lang_sup_loss, noun_adj_obj_att, att_V_o = model.lang_sup_criterion(
             context_object_features,
             object_features,
             word_features,
@@ -403,12 +402,8 @@ def main(exp_const,data_const,model_const):
 
     print('Creating dataloader ...')
     dataloaders = {}
-    FeatDataset = DetFeatDataset
-    if exp_const.self_sup_feat==True:
-        FeatDataset = SelfSupDetFeatDataset
-
     for mode, const in data_const.items():
-        dataset = FeatDataset(const)
+        dataset = DetFeatDataset(const)
         
         if mode=='train':
             shuffle=True

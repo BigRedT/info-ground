@@ -6,7 +6,6 @@ import utils.io as io
 from utils.constants import Constants, ExpConstants
 from global_constants import coco_paths
 from exp.eval_flickr.dataset import  FlickrDatasetConstants
-from exp.eval_flickr.self_sup_dataset import SelfSupFlickrDatasetConstants
 from ..models.object_encoder import ObjectEncoderConstants
 from ..models.cap_encoder import CapEncoderConstants
 from .. import eval_flickr_phrase_loc
@@ -34,10 +33,6 @@ def find_all_model_numbers(model_dir):
     is_flag=True,
     help='Apply flag to switch off contextualization')
 @click.option(
-    '--self_sup_feat',
-    is_flag=True,
-    help='Apply flag to use self-supervised features')
-@click.option(
     '--subset',
     default='val',
     help='subset to run evaluation on')
@@ -55,28 +50,21 @@ def main(**kwargs):
     exp_const.model_dir = os.path.join(exp_const.exp_dir,'models')
     exp_const.seed = 0
     exp_const.contextualize = not kwargs['no_context']
-    exp_const.self_sup_feat = kwargs['self_sup_feat']
     exp_const.random_lang = kwargs['random_lang']
 
-    DatasetConstants = FlickrDatasetConstants
-    if exp_const.self_sup_feat==True:
-        DatasetConstants = SelfSupFlickrDatasetConstants
-
-    data_const = DatasetConstants(kwargs['subset'])
+    data_const = FlickrDatasetConstants(kwargs['subset'])
 
     model_const = Constants()
     model_const.object_encoder = ObjectEncoderConstants()
     model_const.object_encoder.context_layer.output_attentions = True
     model_const.object_encoder.object_feature_dim = 2048
-    if exp_const.self_sup_feat==True:
-        model_const.object_encoder.object_feature_dim = 2048 + 256
     model_const.cap_encoder = CapEncoderConstants()
     model_const.cap_encoder.output_attentions = True
     model_const.cap_info_nce_layers = kwargs['cap_info_nce_layers']
 
     model_nums = find_all_model_numbers(exp_const.model_dir)
     for num in model_nums:
-        if num > 8000 or num==0:
+        if num <= 8000:
             continue
 
         model_const.model_num = num

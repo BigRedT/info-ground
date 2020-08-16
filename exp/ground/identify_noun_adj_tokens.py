@@ -122,7 +122,7 @@ def main(**kwargs):
             'token_ids': noun_adj_token_ids_,
             'tokens': noun_adj_tokens_}
 
-    io.dump_json_object(noun_adj_token_ids,data_const.noun_verb_tokens_json)
+    io.dump_json_object(noun_adj_token_ids,data_const.noun_adj_tokens_json)
 
 
 if __name__=='__main__':

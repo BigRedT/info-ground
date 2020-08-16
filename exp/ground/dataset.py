@@ -10,7 +10,7 @@ from utils.constants import Constants
 from global_constants import coco_paths
 
 
-class SelfSupDetFeatDatasetConstants(Constants):
+class DetFeatDatasetConstants(Constants):
     def __init__(self,subset):
         super().__init__()
         self.subset = subset
@@ -24,24 +24,20 @@ class SelfSupDetFeatDatasetConstants(Constants):
         self.features_hdf5 = os.path.join(self.det_dir,'features.hdf5')
         self.labels_hdf5 = os.path.join(self.det_dir,'labels.hdf5')
         self.scores_hdf5 = os.path.join(self.det_dir,'scores.hdf5')
-
-        self.self_sup_features_hdf5 = os.path.join(
-            coco_paths['local_proc_dir'],
-            coco_paths['extracted']['self_sup_feats'][subset])
         
         # Caption annos
         self.annos_json = os.path.join(
             coco_paths['proc_dir'],
             coco_paths['extracted']['annos']['captions'][subset])
-        self.max_objects = 15
+        self.max_objects = 30
         self.mask_prob = 0.2
 
-        # Noun and verb tokens in captions for MI training
-        self.noun_verb_tokens_json = os.path.join(
+        # Noun and adj tokens in captions for MI training
+        self.noun_adj_tokens_json = os.path.join(
             coco_paths['proc_dir'],
-            coco_paths['extracted']['annos']['noun_verb_tokens'][subset])
-        self.read_noun_verb_tokens = True
-        self.max_noun_verb_tokens = 6
+            coco_paths['extracted']['annos']['noun_adj_tokens'][subset])
+        self.read_noun_adj_tokens = True
+        self.max_noun_adj_tokens = 6
         
         # Negative noun samples
         self.neg_noun_samples_json = os.path.join(
@@ -55,14 +51,14 @@ class SelfSupDetFeatDatasetConstants(Constants):
         self.neg_noun_feat_dim = 768
 
 
-class SelfSupDetFeatDataset(Dataset):
+class DetFeatDataset(Dataset):
     def __init__(self,const):
         self.const = deepcopy(const)
         self.annos = io.load_json_object(self.const.annos_json)
         
-        if self.const.read_noun_verb_tokens is True:
-            self.noun_verb_token_ids = io.load_json_object(
-                self.const.noun_verb_tokens_json)
+        if self.const.read_noun_adj_tokens is True:
+            self.noun_adj_token_ids = io.load_json_object(
+                self.const.noun_adj_tokens_json)
         
         if self.const.read_neg_noun_samples is True:
             self.neg_noun_samples = io.load_json_object(
@@ -79,15 +75,6 @@ class SelfSupDetFeatDataset(Dataset):
 
     def read_object_features(self,image_name):
         f = io.load_h5py_object(self.const.features_hdf5)
-        features = f[image_name][()]
-        f.close()
-        return features
-
-    def read_self_sup_features(self,image_name):
-        f = io.load_h5py_object(self.const.self_sup_features_hdf5)
-        if image_name not in f:
-            return None
-
         features = f[image_name][()]
         f.close()
         return features
@@ -120,16 +107,16 @@ class SelfSupDetFeatDataset(Dataset):
         mask = mask < self.const.mask_prob
         return mask
 
-    def pad_noun_verb_token_ids(self,noun_verb_token_ids):
-        num_tokens = len(noun_verb_token_ids)
-        if num_tokens >= self.const.max_noun_verb_tokens:
-            noun_verb_token_ids = \
-                noun_verb_token_ids[:self.const.max_noun_verb_tokens]
+    def pad_noun_adj_token_ids(self,noun_adj_token_ids):
+        num_tokens = len(noun_adj_token_ids)
+        if num_tokens >= self.const.max_noun_adj_tokens:
+            noun_adj_token_ids = \
+                noun_adj_token_ids[:self.const.max_noun_adj_tokens]
         else:
-            padding = [-1]*(self.const.max_noun_verb_tokens - num_tokens)
-            noun_verb_token_ids = noun_verb_token_ids + padding
+            padding = [-1]*(self.const.max_noun_adj_tokens - num_tokens)
+            noun_adj_token_ids = noun_adj_token_ids + padding
 
-        return noun_verb_token_ids
+        return noun_adj_token_ids
 
     def get_neg_noun_samples_feats(self,image_id,cap_id,noun_id=None):
         str_image_id = str(image_id)
@@ -163,14 +150,8 @@ class SelfSupDetFeatDataset(Dataset):
         caption = anno['caption']
         image_name = self.get_image_name(self.const.subset,anno['image_id'])
         features = self.read_object_features(image_name)
-        self_sup_features = self.read_self_sup_features(image_name)
-        if self_sup_features is None:
-            self_sup_features = np.zeros([features.shape[0],256])
-            
         num_objects = features.shape[0]
         features, pad_mask = self.pad_object_features(features)
-        self_sup_features, _ = self.pad_object_features(self_sup_features)
-        features = np.concatenate((features,self_sup_features),1)
         object_mask = self.mask_objects(num_objects)
         
         to_return = {
@@ -184,10 +165,10 @@ class SelfSupDetFeatDataset(Dataset):
             'pad_mask': pad_mask,
         }
         
-        if self.const.read_noun_verb_tokens is True:
-            noun_verb_token_ids = self.noun_verb_token_ids[i]['token_ids']
-            to_return['noun_verb_token_ids'] = np.array(
-                self.pad_noun_verb_token_ids(noun_verb_token_ids),
+        if self.const.read_noun_adj_tokens is True:
+            noun_adj_token_ids = self.noun_adj_token_ids[i]['token_ids']
+            to_return['noun_adj_token_ids'] = np.array(
+                self.pad_noun_adj_token_ids(noun_adj_token_ids),
                 dtype=np.int32)
 
         if self.const.read_neg_noun_samples is True:
@@ -202,7 +183,7 @@ class SelfSupDetFeatDataset(Dataset):
             new_batch = {}
             for k in batch[0].keys():
                 batch_k = [sample[k] for sample in batch]
-                if k=='noun_verb_token_ids':
+                if k=='noun_adj_token_ids':
                     new_batch[k] = batch_k
                 else:
                     new_batch[k] = default_collate(batch_k)
@@ -212,9 +193,10 @@ class SelfSupDetFeatDataset(Dataset):
         return collate_fn
 
 if __name__=='__main__':
-    const = DetFeatDatasetConstants('val')
+    const = DetFeatDatasetConstants('train')
     dataset = DetFeatDataset(const)
     print(len(dataset))
+    import pdb; pdb.set_trace()
     dataloader = DataLoader(
         dataset,
         5,
