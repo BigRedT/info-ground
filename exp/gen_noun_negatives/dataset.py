@@ -15,16 +15,16 @@ class DetFeatDatasetConstants(Constants):
         super().__init__()
         self.subset = subset
         self.subset_image_dirname = coco_paths['extracted']['images'][subset]
-        self.det_dir = os.path.join(
-            coco_paths['local_proc_dir'],
-            f'detections/{subset}')
+        # self.det_dir = os.path.join(
+        #     coco_paths['local_proc_dir'],
+        #     f'detections/{subset}')
         # self.det_dir = os.path.join(
         #     coco_paths['proc_dir'],
         #     f'detections/{subset}')
-        self.boxes_hdf5 = os.path.join(self.det_dir,'boxes.hdf5')
-        self.features_hdf5 = os.path.join(self.det_dir,'features.hdf5')
-        self.labels_hdf5 = os.path.join(self.det_dir,'labels.hdf5')
-        self.scores_hdf5 = os.path.join(self.det_dir,'scores.hdf5')
+        # self.boxes_hdf5 = os.path.join(self.det_dir,'boxes.hdf5')
+        # self.features_hdf5 = os.path.join(self.det_dir,'features.hdf5')
+        # self.labels_hdf5 = os.path.join(self.det_dir,'labels.hdf5')
+        # self.scores_hdf5 = os.path.join(self.det_dir,'scores.hdf5')
         self.annos_json = os.path.join(
             coco_paths['proc_dir'],
             coco_paths['extracted']['annos']['captions'][subset])
