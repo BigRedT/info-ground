@@ -12,7 +12,7 @@ for dir_type in ['downloads_dir','image_dir','proc_dir']:
 
 
 print('Downloading images ...')
-subsets = ['train','val','test']
+subsets = ['train','val']
 for subset in subsets:
     wget.download(
         coco_paths['urls']['images'][subset],
