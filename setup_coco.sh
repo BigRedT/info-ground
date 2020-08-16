@@ -1,15 +1,15 @@
-NFS_DATA="/shared/rsaas/tgupta6/Data/context-regions/"
-DATA="/data/tgupta6/context-regions"
-mkdir -p $DATA
+NFS_DATA="/shared/rsaas/tgupta6/Data/info-ground/"
+LOCAL_DATA="/data/tgupta6/info-ground"
+mkdir -p $LOCAL_DATA
 
 # Copy images to local data dir
-COCO_IMAGES="${DATA}/coco_images"
-mkdir $COCO_IMAGES
-unzip "${NFS_DATA}/coco_downloads/train2014.zip" -d $COCO_IMAGES
-unzip "${NFS_DATA}/coco_downloads/val2014.zip" -d $COCO_IMAGES
+# COCO_IMAGES="${LOCAL_DATA}/coco_images"
+# mkdir $COCO_IMAGES
+# unzip "${NFS_DATA}/coco_downloads/train2014.zip" -d $COCO_IMAGES
+# unzip "${NFS_DATA}/coco_downloads/val2014.zip" -d $COCO_IMAGES
 
 # Copy detections to local data dir
-COCO_PROC="${DATA}/coco_proc"
+COCO_PROC="${LOCAL_DATA}/coco_proc"
 mkdir $COCO_PROC
 cp -r "${NFS_DATA}/coco_proc/bottomup_coco_detections" $COCO_PROC
 
