@@ -1,10 +1,10 @@
 # Locations where downloaded and extracted files would be stored
-downloads_dir: /shared/rsaas/tgupta6/Data/context-regions/coco_downloads
-proc_dir: /shared/rsaas/tgupta6/Data/context-regions/coco_proc
-exp_dir: /shared/rsaas/tgupta6/Data/context-regions/coco_exp
-image_dir: /data/tgupta6/context-regions/coco_images
-local_proc_dir: /data/tgupta6/context-regions/coco_proc
-det_dir: /data/tgupta6/context-regions/coco_proc/bottomup_coco_detections
+downloads_dir: /shared/rsaas/tgupta6/Data/info-ground/coco_downloads
+proc_dir: /shared/rsaas/tgupta6/Data/info-ground/coco_proc
+exp_dir: /shared/rsaas/tgupta6/Data/info-ground/coco_exp
+image_dir: /data/tgupta6/info-ground/coco_images
+local_proc_dir: /data/tgupta6/info-ground/coco_proc
+det_dir: /data/tgupta6/info-ground/coco_proc/bottomup_coco_detections
 
 # Urls to download data from
 urls:
@@ -31,48 +31,20 @@ extracted:
     noun_vocab:
       train: annotations/noun_vocab_train2014.json
       val: annotations/noun_vocab_val2014.json
-    verb_tokens:
-      train: annotations/verb_tokens_train2014.json
-      val: annotations/verb_tokens_val2014.json
-    verb_vocab:
-      train: annotations/verb_vocab_train2014.json
-      val: annotations/verb_vocab_val2014.json
-    # noun_verb_tokens:
-    #   train: annotations/noun_verb_tokens_train2014.json
-    #   val: annotations/noun_verb_tokens_val2014.json
-    noun_verb_tokens:
+    noun_adj_tokens:
       train: annotations/noun_adj_tokens_train2014.json
       val: annotations/noun_adj_tokens_val2014.json
-  negatives:
-    samples:
-      train: bert_negatives_train2014.json
-      val: bert_negatives_val2014.json
-    feats:
-      train: bert_negatives_train2014.h5py
-      val: bert_negatives_val2014.h5py
   noun_negatives:
     samples:
-      train: bert_noun_negatives_random_train2014.json
-      val: bert_noun_negatives_random_val2014.json
+      train: bert_noun_negatives_train2014.json
+      val: bert_noun_negatives_val2014.json
     feats:
-      train: bert_noun_negatives_random_train2014.h5py
-      val: bert_noun_negatives_random_val2014.h5py
-  noun_feats:
-    feats:
-      train: bert_noun_feats_train2014.h5py
-      val: bert_noun_feats_val2014.h5py
-    feat_info:
-      train: bert_noun_feats_train2014.json
-      val: bert_noun_feats_val2014.json
-  self_sup_feats:
-    train: cmc_resnet50v3_train2014.h5py
-    val: cmc_resnet50v3_val2014.h5py
-  
-clusters:
-  dir: /shared/rsaas/tgupta6/Data/context-regions/coco_exp/bert_noun_clusters_2000
-  centers: cluster_centers.npy
-  active_nouns: active_nouns.json
-  image_labels: 
-    train: image_labels.json
-  labels: 
-    train: labels.json
+      train: bert_noun_negatives_train2014.h5py
+      val: bert_noun_negatives_val2014.h5py
+  # noun_feats:
+  #   feats:
+  #     train: bert_noun_feats_train2014.h5py
+  #     val: bert_noun_feats_val2014.h5py
+  #   feat_info:
+  #     train: bert_noun_feats_train2014.json
+  #     val: bert_noun_feats_val2014.json
