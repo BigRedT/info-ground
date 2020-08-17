@@ -64,8 +64,8 @@ def main(**kwargs):
 
     model_nums = find_all_model_numbers(exp_const.model_dir)
     for num in model_nums:
-        if num <= 8000:
-            continue
+        # if num <= 8000:
+        #     continue
 
         model_const.model_num = num
         model_const.object_encoder_path = os.path.join(

@@ -18,32 +18,6 @@ from utils.bbox_utils import compute_iou, point_in_box, compute_center
 from .train import create_cap_info_nce_criterion
 
 
-# def create_cap_info_nce_criterion(o_dim,u_dim,w_dim,d):
-#     fo = FLayer(o_dim,d)
-#     fw = FLayer(w_dim,d)
-#     ku = KLayer(u_dim,d)
-#     kw = KLayer(w_dim,d)
-#     criterion = CapInfoNCE(fo,fw,ku,kw)
-    
-#     return criterion
-
-
-# def combine_token_obj_att(token_obj_att,tokens):
-#     num_tokens = len(tokens)
-#     att = []
-#     special_chars = {'-',"'"}
-#     for i in range(1,num_tokens-1):
-#         token = tokens[i]
-#         if (len(token) >= 2 and token[:2]=='##') or \
-#             (tokens[i-1] in special_chars) or (token in special_chars):
-#             att[-1] = torch.max(att[-1],token_obj_att[i])
-#         else:
-#             att.append(token_obj_att[i])
-    
-#     att = torch.stack(att,0)
-#     return att
-
-
 def combine_tokens(tokens,words):
     num_tokens = len(tokens)
     att = []
@@ -212,11 +186,10 @@ def eval_model(model,dataset,exp_const):
 
             num_phrases += 1
 
-            if num_phrases%500 == 0:
-                recall = [rp/num_phrases for rp in recalled_phrases]
-                pt_recall = pt_recalled_phrases / num_phrases
-                print(recall,pt_recall)
-            #import pdb; pdb.set_trace()
+            # if num_phrases%500 == 0:
+            #     recall = [round(100*rp/num_phrases,2) for rp in recalled_phrases]
+            #     pt_recall = round(100*pt_recalled_phrases/num_phrases,2)
+            #     print(recall,pt_recall)
     
     recall = [round(100*rp/num_phrases,2) for rp in recalled_phrases]
     pt_recall = round(100*pt_recalled_phrases / num_phrases,2)
