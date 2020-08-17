@@ -123,13 +123,6 @@ def main(**kwargs):
         if len(noun_token_ids_) > 0:
             num_noun_captions += 1
         
-        # if 'has' in tokens:
-        #     print(pos_tags)
-        #     print(tokens)
-        #     print(noun_token_ids_)
-        #     print(noun_words)
-        #     import pdb; pdb.set_trace()
-        
         noun_token_ids[i] = {
             'image_id': image_id,
             'cap_id': cap_id,
