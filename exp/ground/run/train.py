@@ -2,8 +2,9 @@ import os
 import click
 
 from utils.constants import Constants, ExpConstants
-from global_constants import coco_paths
-from ..dataset import DetFeatDatasetConstants
+from global_constants import coco_paths, flickr_paths
+from ..dataset import DetFeatDatasetConstants as CocoDatasetConstants
+from ..dataset_flickr import FlickrDatasetConstants
 from ..models.object_encoder import ObjectEncoderConstants
 from ..models.cap_encoder import CapEncoderConstants
 from ..train import main as train
@@ -15,9 +16,10 @@ from ..train import main as train
     default='default_exp',
     help='Experiment name')
 @click.option(
-    '--exp_base_dir',
-    default=coco_paths['exp_dir'],
-    help='Output directory where a folder would be created for each experiment')
+    '--dataset',
+    default='coco',
+    type=click.Choice(['coco','flickr']),
+    help='Dataset to use')
 @click.option(
     '--model_num',
     default=-1,
@@ -66,16 +68,23 @@ from ..train import main as train
     is_flag=True,
     help='set for val_step=model_save_step else val_step=2*model_save_step')
 def main(**kwargs):
-    exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
+    exp_base_dir = coco_paths['exp_dir']
+    if kwargs['dataset']=='flickr':
+        exp_base_dir = flickr_paths['exp_dir']
+    exp_const = ExpConstants(kwargs['exp_name'],exp_base_dir)
     exp_const.log_dir = os.path.join(exp_const.exp_dir,'logs')
     exp_const.model_dir = os.path.join(exp_const.exp_dir,'models')
     exp_const.vis_dir = os.path.join(exp_const.exp_dir,'vis')
+    exp_const.dataset = kwargs['dataset']
     exp_const.optimizer = 'Adam'
     exp_const.lr = kwargs['lr']
     exp_const.momentum = None
     exp_const.num_epochs = 10
     exp_const.log_step = 20
+    # Save models approx. twice every epoch
     exp_const.model_save_step = 400000//(2*kwargs['train_batch_size']) # 4000=400000/(2*50)
+    if exp_const.dataset=='flickr':
+        exp_const.model_save_step = 150000//(2*kwargs['train_batch_size'])
     val_freq_factor=2
     if kwargs['val_frequently'] is True:
         val_freq_factor=1
@@ -92,6 +101,8 @@ def main(**kwargs):
     exp_const.random_lang = kwargs['random_lang']
     
     DatasetConstants = DetFeatDatasetConstants
+    if exp_const.dataset=='flickr':
+        DatasetConstants = FlickrDatasetConstants
     
     data_const = {
         'train': DatasetConstants('train'),
