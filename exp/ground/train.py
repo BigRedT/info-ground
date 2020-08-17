@@ -18,7 +18,8 @@ from .models.cap_encoder import CapEncoder
 from .models.info_nce_loss import InfoNCE
 from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
 from .models.neg_noun_loss import compute_neg_noun_loss
-from .dataset import DetFeatDataset
+from .dataset import DetFeatDataset as CocoDataset
+from .dataset_flickr import FlickrDataset
 
 
 def create_info_nce_criterion(x_dim,c_dim,d):
@@ -402,8 +403,16 @@ def main(exp_const,data_const,model_const):
 
     print('Creating dataloader ...')
     dataloaders = {}
+    if exp_const.dataset=='coco':
+        Dataset = CocoDataset
+    elif exp_const.dataset=='flickr':
+        Dataset = FlickrDataset
+    else:
+        msg = f'{exp_const.dataset} not implemented'
+        raise NotImplementedError(msg)
+
     for mode, const in data_const.items():
-        dataset = DetFeatDataset(const)
+        dataset = Dataset(const)
         
         if mode=='train':
             shuffle=True
