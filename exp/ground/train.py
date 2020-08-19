@@ -171,7 +171,7 @@ def train_model(model,dataloaders,exp_const,tb_writer):
 
                 log_str = f'Epoch: {epoch} | Iter: {it} | Step: {step} | '
                 for name,value in log_items.items():
-                    log_str += '{}: {:.4f} | '.format(name,value)
+                    log_str += '{}: {:.5f} | '.format(name,value)
                     tb_writer.add_scalar(name,value,step)
 
                 print(log_str)
