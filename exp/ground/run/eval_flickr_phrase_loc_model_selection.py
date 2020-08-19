@@ -4,7 +4,7 @@ import click
 
 import utils.io as io
 from utils.constants import Constants, ExpConstants
-from global_constants import coco_paths
+from global_constants import coco_paths, flickr_paths
 from exp.eval_flickr.dataset import  FlickrDatasetConstants
 from ..models.object_encoder import ObjectEncoderConstants
 from ..models.cap_encoder import CapEncoderConstants
@@ -25,9 +25,10 @@ def find_all_model_numbers(model_dir):
     default='default_exp',
     help='Experiment name')
 @click.option(
-    '--exp_base_dir',
-    default=coco_paths['exp_dir'],
-    help='Output directory where a folder would be created for each experiment')
+    '--dataset',
+    default='coco',
+    type=click.Choice(['coco','flickr']),
+    help='Dataset to use')
 @click.option(
     '--no_context',
     is_flag=True,
@@ -46,7 +47,10 @@ def find_all_model_numbers(model_dir):
     type=int,
     help='Number of layers in lang_sup_criterion')
 def main(**kwargs):
-    exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
+    exp_base_dir = coco_paths['exp_dir']
+    if kwargs['dataset']=='flickr':
+        exp_base_dir = flickr_paths['exp_dir']
+    exp_const = ExpConstants(kwargs['exp_name'],exp_base_dir)
     exp_const.model_dir = os.path.join(exp_const.exp_dir,'models')
     exp_const.seed = 0
     exp_const.contextualize = not kwargs['no_context']
@@ -64,8 +68,9 @@ def main(**kwargs):
 
     model_nums = find_all_model_numbers(exp_const.model_dir)
     for num in model_nums:
-        # if num <= 8000:
-        #     continue
+        continue
+        if num <= 3000:
+            continue
 
         model_const.model_num = num
         model_const.object_encoder_path = os.path.join(
@@ -83,9 +88,9 @@ def main(**kwargs):
             exp_const.exp_dir,
             f'results_{data_const.subset}_{num}.json')
         
-        # if os.path.exists(filename):
-        #     print(io.load_json_object(filename))
-        #     continue
+        if os.path.exists(filename):
+            print(io.load_json_object(filename))
+            continue
         
         eval_flickr_phrase_loc.main(exp_const,data_const,model_const)
 

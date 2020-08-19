@@ -15,9 +15,10 @@ from .. import eval_flickr_phrase_loc
     default='default_exp',
     help='Experiment name')
 @click.option(
-    '--exp_base_dir',
-    default=coco_paths['exp_dir'],
-    help='Output directory where a folder would be created for each experiment')
+    '--dataset',
+    default='coco',
+    type=click.Choice(['coco','flickr']),
+    help='Dataset to use')
 @click.option(
     '--model_num',
     default=-1,
@@ -41,7 +42,10 @@ from .. import eval_flickr_phrase_loc
     type=int,
     help='Number of layers in lang_sup_criterion')
 def main(**kwargs):
-    exp_const = ExpConstants(kwargs['exp_name'],kwargs['exp_base_dir'])
+    exp_base_dir = coco_paths['exp_dir']
+    if kwargs['dataset']=='flickr':
+        exp_base_dir = flickr_paths['exp_dir']
+    exp_const = ExpConstants(kwargs['exp_name'],exp_base_dir)
     exp_const.model_dir = os.path.join(exp_const.exp_dir,'models')
     exp_const.seed = 0
     exp_const.contextualize = not kwargs['no_context']
