@@ -35,12 +35,12 @@ class FlickrDatasetConstants(Constants):
         self.max_objects = 30
         self.mask_prob = 0.2
 
-        # Noun and verb tokens in captions for MI training
-        self.noun_verb_tokens_json = os.path.join(
+        # Noun and adj tokens in captions for MI training
+        self.noun_adj_tokens_json = os.path.join(
             flickr_paths['proc_dir'],
-            flickr_paths['noun_verb_tokens'][subset])
-        self.read_noun_verb_tokens = True
-        self.max_noun_verb_tokens = 6
+            flickr_paths['noun_adj_tokens'][subset])
+        self.read_noun_adj_tokens = True
+        self.max_noun_adj_tokens = 6
         
         # Negative noun samples
         self.neg_noun_samples_json = os.path.join(
@@ -61,9 +61,9 @@ class FlickrDataset(Dataset):
         self.image_ids = self.read_image_ids()
         self.phrase_boxes = io.load_json_object(self.const.phrase_boxes_json)
         self.sentences = io.load_json_object(self.const.sentences_json)
-        if self.const.read_noun_verb_tokens is True:
-            self.noun_verb_token_ids = io.load_json_object(
-                self.const.noun_verb_tokens_json)
+        if self.const.read_noun_adj_tokens is True:
+            self.noun_adj_token_ids = io.load_json_object(
+                self.const.noun_adj_tokens_json)
         
         if self.const.read_neg_noun_samples is True:
             self.neg_noun_samples = io.load_json_object(
@@ -126,16 +126,16 @@ class FlickrDataset(Dataset):
         mask = mask < self.const.mask_prob
         return mask
 
-    def pad_noun_verb_token_ids(self,noun_verb_token_ids):
-        num_tokens = len(noun_verb_token_ids)
-        if num_tokens >= self.const.max_noun_verb_tokens:
-            noun_verb_token_ids = \
-                noun_verb_token_ids[:self.const.max_noun_verb_tokens]
+    def pad_noun_adj_token_ids(self,noun_adj_token_ids):
+        num_tokens = len(noun_adj_token_ids)
+        if num_tokens >= self.const.max_noun_adj_tokens:
+            noun_adj_token_ids = \
+                noun_adj_token_ids[:self.const.max_noun_adj_tokens]
         else:
-            padding = [-1]*(self.const.max_noun_verb_tokens - num_tokens)
-            noun_verb_token_ids = noun_verb_token_ids + padding
+            padding = [-1]*(self.const.max_noun_adj_tokens - num_tokens)
+            noun_adj_token_ids = noun_adj_token_ids + padding
 
-        return noun_verb_token_ids
+        return noun_adj_token_ids
 
     def get_neg_noun_samples_feats(self,image_id,cap_id,noun_id=None):
         str_image_id = str(image_id)
@@ -188,10 +188,10 @@ class FlickrDataset(Dataset):
             'pad_mask': pad_mask,
         }
 
-        if self.const.read_noun_verb_tokens is True:
-            noun_verb_token_ids = self.noun_verb_token_ids[i]['token_ids']
-            to_return['noun_verb_token_ids'] = np.array(
-                self.pad_noun_verb_token_ids(noun_verb_token_ids),
+        if self.const.read_noun_adj_tokens is True:
+            noun_adj_token_ids = self.noun_adj_token_ids[i]['token_ids']
+            to_return['noun_adj_token_ids'] = np.array(
+                self.pad_noun_adj_token_ids(noun_adj_token_ids),
                 dtype=np.int32)
 
         if self.const.read_neg_noun_samples is True:
