@@ -4,7 +4,7 @@ import nltk
 from tqdm import tqdm
 
 import utils.io as io
-from .dataset_flickr import FlickrDatasetConstants, FlickrDataset
+from .dataset_flickr import FlickrDatasetConstants, FlickrDataset, flickr_paths
 from .models.cap_encoder import CapEncoderConstants, CapEncoder
 from .identify_tokens import (combine_subtokens, align_pos_tokens,
     get_noun_token_ids, group_token_ids, ignore_words_from_pos)
@@ -59,7 +59,7 @@ def main(**kwargs):
                 num_human_captions += 1
                 break
 
-    io.mkdir_if_not_exists(os.path.join(data_const.proc_dir,'annotations'))
+    io.mkdir_if_not_exists(os.path.join(flickr_paths['proc_dir'],'annotations'))
     io.dump_json_object(noun_token_ids,data_const.noun_tokens_json)
     io.dump_json_object(sorted(list(noun_vocab)),data_const.noun_vocab_json)
     print('Number of human captions:',num_human_captions)

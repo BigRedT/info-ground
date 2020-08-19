@@ -9,31 +9,7 @@ from global_constants import flickr_paths
 import utils.io as io
 from utils.html_writer import HtmlWriter
 from .models.cap_encoder import CapEncoderConstants, CapEncoder
-
-
-def convert_tokens_to_ids(batch_tokens,cap_encoder):
-    converter = cap_encoder.tokenizer._convert_token_to_id
-
-    batch_token_ids = []
-    for tokens in batch_tokens:
-        token_ids = []
-        for token in tokens:
-            token_ids.append(converter(token))
-        
-        batch_token_ids.append(token_ids)
-    
-    return batch_token_ids
-    
-
-def remove_padding(tokens):
-    new_tokens = []
-    for token in tokens:
-        if token=='[PAD]':
-            break
-        else:
-            new_tokens.append(token)
-    
-    return new_tokens
+from .cache_neg_features import convert_tokens_to_ids, remove_padding
 
 
 @click.command()

@@ -92,20 +92,6 @@ def sort_by_scores(score_preds):
     return sorted(score_preds,key=lambda x: x[1],reverse=True)
 
 
-def ensemble_prediction(token_ids,cap_encoder,T=5):
-    agg_pred = None
-    for t in range(T):
-        masked_token_ids = cap_encoder.mask_batch(token_ids)
-        pred = cap_encoder.model(masked_token_ids)[0]
-        if agg_pred is None:
-            agg_pred = pred
-        else:
-            agg_pred = agg_pred + pred
-
-    agg_pred = agg_pred / T
-    return agg_pred
-
-
 @click.command()
 @click.option(
     '--subset',
