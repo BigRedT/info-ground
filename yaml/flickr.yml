@@ -1,6 +1,7 @@
 downloads_dir: /shared/rsaas/tgupta6/Data/info-ground/flickr30k_downloads
 anno_dir: /shared/rsaas/tgupta6/Data/info-ground/flickr30k_downloads/Annotations
 sent_dir: /shared/rsaas/tgupta6/Data/info-ground/flickr30k_downloads/Sentences
+exp_dir: /shared/rsaas/tgupta6/Data/info-ground/flickr_exp
 proc_dir: /shared/rsaas/tgupta6/Data/info-ground/flickr30k_proc
 local_proc_dir: /data/tgupta6/info-ground/flickr30k_proc
 image_dir: /data/tgupta6/info-ground/flickr30k_images
@@ -22,16 +23,13 @@ sentences:
   val: sentences_val.json
   test: sentences_test.json
 
-self_sup_feats:
-  test: cmc_resnet50v3_test.h5py
-
 noun_tokens:
   train: annotations/noun_tokens_train.json
   val: annotations/noun_tokens_val.json
 noun_vocab:
   train: annotations/noun_vocab_train.json
   val: annotations/noun_vocab_val.json
-noun_verb_tokens:
+noun_adj_tokens:
   train: annotations/noun_adj_tokens_train.json
   val: annotations/noun_adj_tokens_val.json
 noun_negatives:
