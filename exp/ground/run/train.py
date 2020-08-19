@@ -100,7 +100,7 @@ def main(**kwargs):
     exp_const.contextualize = not kwargs['no_context']
     exp_const.random_lang = kwargs['random_lang']
     
-    DatasetConstants = DetFeatDatasetConstants
+    DatasetConstants = CocoDatasetConstants
     if exp_const.dataset=='flickr':
         DatasetConstants = FlickrDatasetConstants
     
