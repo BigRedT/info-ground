@@ -1,4 +1,4 @@
-name: context-regions
+name: info-ground
 channels:
   - pytorch
   - conda-forge
