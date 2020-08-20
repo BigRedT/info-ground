@@ -16,8 +16,7 @@ import utils.io as io
 from utils.constants import save_constants, Constants
 from .models.object_encoder import ObjectEncoder
 from .models.cap_encoder import CapEncoder
-from .dataset import DetFeatDataset
-from .self_sup_dataset import SelfSupDetFeatDataset
+from .dataset import DetFeatDataset as CocoDataset
 from .models.factored_cap_info_nce_loss import CapInfoNCE, KLayer, FLayer
 from utils.bbox_utils import vis_bbox, create_att
 from utils.html_writer import HtmlWriter
@@ -206,11 +205,7 @@ def main(exp_const,data_const,model_const):
     model.lang_sup_criterion.cuda()
 
     print('Creating dataloader ...')
-    FeatDataset = DetFeatDataset
-    if exp_const.self_sup_feat==True:
-        FeatDataset = SelfSupDetFeatDataset
-
-    dataset = FeatDataset(data_const)
+    dataset = CocoDataset(data_const)
     dataloader = DataLoader(
         dataset,
         batch_size=1,
