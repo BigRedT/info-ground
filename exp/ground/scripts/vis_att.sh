@@ -1,4 +1,8 @@
-python -m exp.pretrain_coco_noun_negs.run.vis_att \
-    --exp_name 'loss_wts_neg_noun_1_self_sup_1_lang_sup_1_no_context_vgdet_nonlinear_infonce_2_layer_adj_batch_50' \
-    --model_num 36000 \
+EXP_NAME=$1
+TRAIN_DATASET=$2
+python -m exp.ground.run.vis_att \
+    --exp_name $EXP_NAME \
+    --train_dataset $TRAIN_DATASET \
+    --vis_dataset 'flickr' \
+    --model_num -100 \
     --no_context
