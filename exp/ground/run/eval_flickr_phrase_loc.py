@@ -3,7 +3,7 @@ import click
 
 import utils.io as io
 from utils.constants import Constants, ExpConstants
-from global_constants import coco_paths
+from global_constants import coco_paths, flickr_paths
 from exp.eval_flickr.dataset import  FlickrDatasetConstants
 from ..models.object_encoder import ObjectEncoderConstants
 from ..models.cap_encoder import CapEncoderConstants
