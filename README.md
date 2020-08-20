@@ -1,24 +1,48 @@
-# Setup file paths
+# Contrastive Learning for Weakly Supervised Phrase Grounding
+By Tanmay Gupta, Arash Vahdat, Gal Chechik, Xiaodong Yang, Jan Kautz, and Derek Hoiem
+
+**Available on Arxiv**: [https://arxiv.org/abs/2006.09920](https://arxiv.org/abs/2006.09920)
+
+**Project Page**: [http://tanmaygupta.info/info-ground/](http://tanmaygupta.info/info-ground/)
+
+**BibTex**:
+```
+@article{gupta2020contrastive,
+  title={Contrastive Learning for Weakly Supervised Phrase Grounding},
+  author={Gupta, Tanmay and Vahdat, Arash and Chechik, Gal and Yang, Xiaodong and Kautz, Jan and Hoiem, Derek},
+  booktitle={ECCV},
+  year={2020}
+}
+```
+
+# Requirements
+Create a conda environment with all dependencies provided in the `environment.yml` file using
+```bash
+conda env create -f environment.yml
+```
+
+Activate the environment with
+```bash
+conda activate info-ground
+```
+
+All commands in the following sections are to be executed in the same directory as this `README.md` file.
+
+# Setup file paths and data
 
 <details><summary>COCO</summary>
 
 Update the following paths in `yaml/coco.yml`:
 
-- `downloads_dir`: directory where COCO data would be downloaded
+- `downloads_dir`: directory where COCO data would be downloaded (next section provides commands for downloading and)
 - `proc_dir`: directory where processed COCO data would be stored
 - `exp_dir`: directory where COCO experiment runs would be saved
 - `image_dir`: directory where COCO images would be extracted
 - `local_proc_dir`: a local copy of `proc_dir` if frequent reads from `proc_dir` is a problem. This is useful, for example, if `proc_dir` is NFS shared across multiple machines and `local_proc_dir` is local data storage for the machine you want to run experiments on. We provide scripts for copying files from `proc_dir` to `local_proc_dir`.
 
 In my setup `downloads_dir`, `proc_dir`, and `exp_dir` are directories on a shared NFS storage while `image_dir` and `local_proc_dir` point to local storage. 
-</details>
 
-
-# Download and extract data
-
-<details><summary>COCO</summary>
-
-Before running the following, please make sure the paths are correctly setup in `yaml/coco.yml`.
+Once the paths are setup in `yaml/coco.yml`, run the following:
 ```python
 # download COCO images and annotations to downloads_dir
 python -m data.coco.download
@@ -27,6 +51,32 @@ python -m data.coco.extract_annos
 # extract images to image_dir
 python -m data.coco.extract_images
 ```
+</details>
+
+<details><summary>Flickr</summary>
+
+Set the `download_dir` variable in `data/flickr/download.sh` to the location where you would like to download the Flickr30K Entities annotations and splits from the github repository. Now, run the following the download and extract the contents of the downloaded `annotations.zip` file in the same directory:
+```bash
+# clone Flickr30K Entities github repo and extract annotations and splits
+bash data/flickr/download.sh
+# process annotations into easy to read json files
+bash data/flickr/process_annos.sh
+```
+
+For access to Flickr30K images, please follow the instructions <a href="http://bryanplummer.com/Flickr30kEntities/">here</a>. You might be required to fill a form. Download the images to a convenient directory whose path will be referred to as `image_dir`.
+
+Now, update the following paths in `yaml/flickr.yml`:
+- `downloads_dir`: directory where Flickr data were downloaded (same as the path provided in download.sh file)
+- `anno_dir`: directory where Annotations were extracted from the downloaded `annotations.zip` file. This would be `<downloads_dir>/Annotations`.
+- `sent_dir`: directory where Sentences were extracted from the downloaded `annotations.zip` file. This would be `<downloads_dir>/Sentences`.
+- `proc_dir`: directory where processed Flickr data would be stored
+- `exp_dir`: directory where Flickr experiment runs would be saved
+- `image_dir`: directory where Flickr images would be extracted
+- `local_proc_dir`: a local copy of `proc_dir` if frequent reads from `proc_dir` is a problem. This is useful, for example, if `proc_dir` is NFS shared across multiple machines and `local_proc_dir` is local data storage for the machine you want to run experiments on. We provide scripts for copying files from `proc_dir` to `local_proc_dir`.
+
+In my setup `downloads_dir`, `proc_dir`, and `exp_dir` are directories on a shared NFS storage while `image_dir` and `local_proc_dir` point to local storage. 
+
+
 </details>
 
 
@@ -43,21 +93,31 @@ Download and extract detections to a desired location:
 
 # Construct context-preserving negative captions
 
-<details><summary>COCO</summary>
+Follow the instructions for whichever dataset you want to train on.
 
 **Step 1:** Identity noun tokens to be substituted
-```
+```bash
+# For COCO
 bash exp/gen_noun_negatives/scripts/identify_tokens.sh train
 bash exp/gen_noun_negatives/scripts/identify_tokens.sh val
+
+# For Flickr
+bash exp/gen_noun_negatives/scripts/identify_tokens_flickr.sh train
+bash exp/gen_noun_negatives/scripts/identify_tokens_flickr.sh val
 ```
 This creates the following files in `<proc_dir>/annotations`:
 - `noun_tokens_<subset>.json`: identified noun tokens in captions
 - `noun_vocab_<subset>.json`: noun vocabulary
 
 **Step 2:** Sample substitute words 
-```
+```bash
+# For COCO
 bash exp/gen_noun_negatives/scripts/sample_neg_bert.sh train
 bash exp/gen_noun_negatives/scripts/sample_neg_bert.sh val
+
+# For Flickr
+bash exp/gen_noun_negatives/scripts/sample_neg_bert_flickr.sh train
+bash exp/gen_noun_negatives/scripts/sample_neg_bert_flickr.sh val
 ```
 This creates the following files in `<proc_dir>`:
 - `bert_noun_negatives_<subset>.json`: contains negative captions constructed by substituting a word in the positive caption
@@ -65,17 +125,16 @@ This creates the following files in `<proc_dir>`:
 ![Screenshot of the webpage displaying sampled negatives](imgs/sampled_negatives.png)
 
 **Step 3:** Cache contextualized representations of the substituted words
-```
+```bash
+# For COCO
 bash exp/gen_noun_negatives/scripts/cache_neg_fetures.sh train
 bash exp/gen_noun_negatives/scripts/cache_neg_fetures.sh val
+
+# For Flickr
+bash exp/gen_noun_negatives/scripts/cache_neg_fetures_flickr.sh train
+bash exp/gen_noun_negatives/scripts/cache_neg_fetures_flickr.sh val
 ```
 This creates the following files in `<proc_dir>`:
-
-</details>
-
-<details><summary>Flickr30K</summary>
-
-</details>
 
 
 # Learn to ground
@@ -110,10 +169,13 @@ bash setup_flickr.sh
 **Step 3:** Start training by executing
 ```bash
 # For COCO
-bash exp/ground/scripts/train.sh
+bash exp/ground/scripts/train.sh model_trained_on_coco coco
 
 # For Flickr
-bash exp/ground/scripts/train_flickr.sh
+bash exp/ground/scripts/train.sh model_trained_on_flickr flickr
+
+# General form
+bash exp/ground/scripts/train.sh <exp_name> <training_dataset>
 ```
 
 # Evaluate on Flickr
@@ -122,20 +184,50 @@ To evaluate on Flickr, follow the instructions above to setup Flickr file paths,
 **Model Selection:** As noted in our paper, we use ground truth annotations in the Flickr validation set for model selection. To perform model selection run
 ```bash
 # For COCO
-bash exp/ground/scripts/eval_flickr_phrase_loc_model_selection.sh model_trained_on_coco
+bash exp/ground/scripts/eval_flickr_phrase_loc_model_selection.sh model_trained_on_coco coco
 
 # For Flickr
-bash exp/ground/scripts/eval_flickr_phrase_loc_model_selection.sh model_trained_on_flickr
+bash exp/ground/scripts/eval_flickr_phrase_loc_model_selection.sh model_trained_on_flickr flickr
+
+# General form
+bash exp/ground/scripts/eval_flickr_phrase_loc_model_selection.sh <exp_name> <training_dataset>
 ```
 
 **Model evaluation:** To evaluate the selected model, run 
 ```bash
 # For COCO
-bash exp/ground/scripts/eval_flickr_phrase_loc.sh model_trained_on_coco
+bash exp/ground/scripts/eval_flickr_phrase_loc.sh model_trained_on_coco coco
 
 # For Flickr
-bash exp/ground/scripts/eval_flickr_phrase_loc.sh model_trained_on_flickr
+bash exp/ground/scripts/eval_flickr_phrase_loc.sh model_trained_on_flickr flickr
+
+# General form
+bash exp/ground/scripts/eval_flickr_phrase_loc.sh <exp_name> <training_dataset>
 ```
+
+To provide a sense of variance to expect in pointing accuracy on Flickr30K Entities from training your own models using our repo, here's the performance of one run in comparison to the provided pretrained models:
+| Training Dataset  | Flickr Val Accuracy | Flickr Test Accuracy | Flickr Test Accuracy in Paper|
+| ------------- | ------------- | ------------- | ------------- |
+| Coco  | 75.38  | 76.16 | 76.74 |
+| Flickr  | 73.57  | 74.79 | 74.94 |
+
+<br>
+
+**Pretrained Models:** We provide [pretrained models](https://drive.google.com/file/d/1I1IRONgO5DAMlyl55--OovOqPvr7rb7X/view?usp=sharing) trained on both COCO and Flickr to reproduce the numbers in our paper. See `exp/ground/eval_flickr_phrase_loc.py` and `exp/ground/run/eval_flickr_phrase_loc.py` to understand how to load the model.
+
+**Visualize Results:** To visualize grounding on Flickr val set, execute the following:
+```bash
+# For Coco
+bash exp/ground/scripts/vis_att.sh model_trained_on_coco coco
+
+# For Flickr
+bash exp/ground/scripts/vis_att.sh model_trained_on_flickr flickr
+
+# General Form
+bash exp/ground/scripts/vis_att.sh <exp_name> <training_dataset>
+``` 
+This would create html pages to visualize top 3 predicted bounding boxes for each word in the caption at `<exp_dir>/vis/attention_flickr`. Open `imgs/example_visualization/index.html` in a browser for an example visualization generated by this script.
+
 
 
 
