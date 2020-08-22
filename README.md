@@ -1,6 +1,8 @@
 # Contrastive Learning for Weakly Supervised Phrase Grounding
 By [Tanmay Gupta](http://tanmaygupta.info/), [Arash Vahdat](http://latentspace.cc/arash_vahdat/), [Gal Chechik](https://chechiklab.biu.ac.il/~gal/), [Xiaodong Yang](https://xiaodongyang.org/), [Jan Kautz](https://research.nvidia.com/person/jan-kautz), and [Derek Hoiem](http://dhoiem.cs.illinois.edu/)
 
+*(ECCV 2020 Spotlight)*
+
 <p align="center">
     <img src="imgs/info-ground-arch.png">
 </p>
