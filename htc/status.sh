@@ -1,1 +1,0 @@
-condor_status --compact -af:h Machine NumDynamicSlots TotalCpus TotalGpus  TotalMemory Cpus Gpus  Memory  LoadAvg State Jobs/Min MaxSlotGb CUDADeviceName

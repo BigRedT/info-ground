@@ -1,6 +1,0 @@
-Executable   = htc/executable.sh
-Log          = job.log
-Output       = job.stdout
-Error        = job.stderr
-Request_gpus = 0
-Queue

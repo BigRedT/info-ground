@@ -1,1 +1,0 @@
-condor_submit htc/job.sub

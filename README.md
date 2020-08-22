@@ -94,12 +94,14 @@ Download and extract detections to a desired location:
 - [COCO](https://drive.google.com/file/d/1I70cDM2MEe56tZVq8PELffm3S13uYjHV/view?usp=sharing) [20 GB]
 - [Flickr30K](https://drive.google.com/file/d/1CxTY38nKPFe9wikEdpeU-XXMwbFs77GV/view?usp=sharing) [5 GB]
 
+Update `det_dir` in `yaml/coco.yml` or `yaml/flickr.yml` to location where the detections were extracted.
 
 # Construct context-preserving negative captions
 
 Follow the instructions for whichever dataset you want to train on.
 
-**Step 1:** Identity noun tokens to be substituted
+<details><summary><b>Step 1:</b> Identity noun tokens to be substituted</summary>
+
 ```bash
 # For COCO
 bash exp/gen_noun_negatives/scripts/identify_tokens.sh train
@@ -113,7 +115,10 @@ This creates the following files in `<proc_dir>/annotations`:
 - `noun_tokens_<subset>.json`: identified noun tokens in captions
 - `noun_vocab_<subset>.json`: noun vocabulary
 
-**Step 2:** Sample substitute words 
+</details>
+
+<details><summary><b>Step 2:</b> Sample substitute words</summary> 
+
 ```bash
 # For COCO
 bash exp/gen_noun_negatives/scripts/sample_neg_bert.sh train
@@ -128,7 +133,10 @@ This creates the following files in `<proc_dir>`:
 - `vis_bert_noun_negatives_<subset>.html`: an webpage visualizing words tokens in the positive caption, the token replaced, top 30 negatives sampled from q(s|s',c) (`True Pred`), top 30 negatives sampled from p(s'|c) (`Lang Pred`), reranked Lang Pred negatives (`Rerank Pred`). The last 5 words in Rerank Pred are discarded and remaining 25 are used as negatives. Here's an example:  
 ![Screenshot of the webpage displaying sampled negatives](imgs/sampled_negatives.png)
 
-**Step 3:** Cache contextualized representations of the substituted words
+</details>
+
+<details><summary><b>Step 3:</b> Cache contextualized representations of the substituted words</summary> 
+
 ```bash
 # For COCO
 bash exp/gen_noun_negatives/scripts/cache_neg_fetures.sh train
@@ -139,6 +147,10 @@ bash exp/gen_noun_negatives/scripts/cache_neg_fetures_flickr.sh train
 bash exp/gen_noun_negatives/scripts/cache_neg_fetures_flickr.sh val
 ```
 This creates the following files in `<proc_dir>`:
+- `bert_noun_negatives_<subset>.h5py`: contextualized features for sampled negative word substitutes
+
+</details>
+
 
 
 # Learn to ground
@@ -147,7 +159,8 @@ Once we have the following, we are ready to train our grounding model:
 - Detections on train and val sets for the dataset you want to train on (COCO or Flickr30K)
 - Negatives with cached features for the train and val set for the same dataset
 
-**Step 1:** Identify noun and adjective tokens to maximize mutual information with the image regions.
+<details><summary><b>Step 1:</b> Identify noun and adjective tokens to estimate mutual information with the image regions</summary>
+
 ```bash
 # For COCO
 bash exp/ground/scripts/identify_noun_adj_tokens.sh train
@@ -159,7 +172,11 @@ bash exp/ground/scripts/identify_noun_adj_tokens_flickr.sh val
 ```
 This creates `<proc_dir>/annotations/noun_adj_tokens_<subset>.json`
 
-**Step 2:** Copy over detections and cached features to `<local_proc_dir>`. This may reduce training time if, for instance, `<proc_dir>` is a slow shared NFS and `<local_proc_dir>` is a faster local drive. Otherwise you may skip this step and set `<local_proc_dir>` to the same path as `<proc_dir>`.
+</details>
+
+<details><summary><b>Step 2:</b> Copy over detections and cached features from nfs (proc_dir) to local storage (local_proc_dir)</summary>
+
+This may reduce training time if, for instance, `<proc_dir>` is a slow shared NFS and `<local_proc_dir>` is a faster local drive. Otherwise you may skip this step and set `<local_proc_dir>` to the same path as `<proc_dir>`.
 
 To copy, modify path variables `NFS_DATA` and `LOCAL_DATA` in `setup_coco.sh` or `setup_flickr.sh` and execute 
 ```bash
@@ -169,8 +186,10 @@ bash setup_coco.sh
 # For Flickr
 bash setup_flickr.sh
 ```
+</details>
 
-**Step 3:** Start training by executing
+<details><summary><b>Step 3:</b> Start training</summary>
+
 ```bash
 # For COCO
 bash exp/ground/scripts/train.sh model_trained_on_coco coco
@@ -181,11 +200,16 @@ bash exp/ground/scripts/train.sh model_trained_on_flickr flickr
 # General form
 bash exp/ground/scripts/train.sh <exp_name> <training_dataset>
 ```
+</details>
+
 
 # Evaluate on Flickr
+
 To evaluate on Flickr, follow the instructions above to setup Flickr file paths, download/extract the dataset, and download object detections. If needed also run `setup_flickr.sh` to copy files from NFS to local disk after modifying `NFS_DATA` and `LOCAL_DATA` paths in the script.
 
-**Model Selection:** As noted in our paper, we use ground truth annotations in the Flickr validation set for model selection. To perform model selection run
+<details><summary><b>Model Selection</b></summary> 
+
+As noted in our paper, we use ground truth annotations in the Flickr validation set for model selection. To perform model selection run
 ```bash
 # For COCO
 bash exp/ground/scripts/eval_flickr_phrase_loc_model_selection.sh model_trained_on_coco coco
@@ -197,7 +221,11 @@ bash exp/ground/scripts/eval_flickr_phrase_loc_model_selection.sh model_trained_
 bash exp/ground/scripts/eval_flickr_phrase_loc_model_selection.sh <exp_name> <training_dataset>
 ```
 
-**Model evaluation:** To evaluate the selected model, run 
+</details>
+
+<details><summary><b>Model Evaluation</b></summary> 
+
+To evaluate the selected model, run 
 ```bash
 # For COCO
 bash exp/ground/scripts/eval_flickr_phrase_loc.sh model_trained_on_coco coco
@@ -216,10 +244,16 @@ To provide a sense of variance to expect in pointing accuracy on Flickr30K Entit
 | Flickr  | 73.57  | 74.79 | 74.94 |
 
 <br>
+</details>
 
-**Pretrained Models:** We provide [pretrained models](https://drive.google.com/file/d/1I1IRONgO5DAMlyl55--OovOqPvr7rb7X/view?usp=sharing) trained on both COCO and Flickr to reproduce the numbers in our paper. See `exp/ground/eval_flickr_phrase_loc.py` and `exp/ground/run/eval_flickr_phrase_loc.py` to understand how to load the model.
+<details><summary><b>Pretrained Models</b></summary> 
 
-**Visualize Results:** To visualize grounding on Flickr val set, execute the following:
+We provide [pretrained models](https://drive.google.com/file/d/1I1IRONgO5DAMlyl55--OovOqPvr7rb7X/view?usp=sharing) trained on both COCO and Flickr to reproduce the numbers in our paper. See `exp/ground/eval_flickr_phrase_loc.py` and `exp/ground/run/eval_flickr_phrase_loc.py` to understand how to load the model.
+</details>
+
+<details><summary><b>Visualize Results</b></summary>
+
+To visualize grounding on Flickr val set, execute the following:
 ```bash
 # For Coco
 bash exp/ground/scripts/vis_att.sh model_trained_on_coco coco
@@ -231,3 +265,4 @@ bash exp/ground/scripts/vis_att.sh model_trained_on_flickr flickr
 bash exp/ground/scripts/vis_att.sh <exp_name> <training_dataset>
 ``` 
 This would create html pages to visualize top 3 predicted bounding boxes for each word in the caption at `<exp_dir>/vis/attention_flickr`. Open `imgs/example_visualization/index.html` in a browser for an example visualization generated by this script.
+</details>

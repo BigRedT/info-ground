@@ -1,4 +1,0 @@
-Requirements = Machine=="vision-05.cs.illinois.edu"
-Request_gpus = 0
-Request_cpus = 4
-Queue
