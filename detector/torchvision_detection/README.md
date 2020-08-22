@@ -1,0 +1,1 @@
+This directory contains code from the official Pytorch torchvision repository that has been lightly modified to return region features from detectors. See the LICENSE file in this directory for license attached to the original code.
